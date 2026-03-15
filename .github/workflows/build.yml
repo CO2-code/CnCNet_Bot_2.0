@@ -3,15 +3,6 @@ name: Build Bot
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: "Branch to build"
-        required: true
-        default: "main"
-        type: choice
-        options:
-          - main
-          - dev
-          - feature
       runtime:
         description: "Target runtime"
         required: true
@@ -26,10 +17,8 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout selected branch
+      - name: Checkout current branch
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
