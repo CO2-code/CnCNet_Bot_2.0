@@ -1,6 +1,5 @@
 ﻿using MedalBot.Commands;
 using MedalBot.Services;
-using MedalBOT.Services;
 using System;
 using System.IO;
 using System.Net.Sockets;
@@ -12,15 +11,36 @@ namespace MedalBot
     {
         static async Task Main()
         {
+            const string iniPath = "credentials.ini";
+
+            // Auto-create template if missing
+            if (!File.Exists(iniPath))
+            {
+                File.WriteAllText(iniPath,
+@"[IRC]
+Nick=
+User=
+Pass=
+Channel=
+ChannelPass=
+Server=
+Port=
+");
+                Console.WriteLine("⚠️ credentials.ini was missing. A template has been created. Fill it and restart the bot.");
+            }
+
+            // Load IRC credentials from ini
+            var creds = IniReader.Read(iniPath, "IRC");
+
             var ctx = new BotContext
             {
-                Server = "irc.gamesurge.net",
-                Port = 6667,
-                Nick = "Nick",
-                User = "Username",
-                Pass = "Pass",
-                Channel = "#channel",
-                ChannelPass = "channelpass",
+                Server = creds.GetValueOrDefault("Server", "server"),
+                Port = int.TryParse(creds.GetValueOrDefault("Port", "6667"), out var p) ? p : 6667,
+                Nick = creds.GetValueOrDefault("Nick", "nick"),
+                User = creds.GetValueOrDefault("User", "username"),
+                Pass = creds.GetValueOrDefault("Pass", "Pass"),
+                Channel = creds.GetValueOrDefault("Channel", "#channel"),
+                ChannelPass = creds.GetValueOrDefault("ChannelPass", ""),
                 VoicedUsers = new System.Collections.Generic.Dictionary<string, int>(StringComparer.OrdinalIgnoreCase),
                 CurrentHostmasks = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
                 Admins = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase),
@@ -32,7 +52,7 @@ namespace MedalBot
             LoadVoiced(ctx);
             LoadMessages(ctx);
 
-            using var tcp = new TcpClient(ctx.Server, ctx.Port);
+            using var tcp = new System.Net.Sockets.TcpClient(ctx.Server, ctx.Port);
             using var reader = new StreamReader(tcp.GetStream());
             using var writer = new StreamWriter(tcp.GetStream()) { AutoFlush = true };
             ctx.Writer = writer;
@@ -43,7 +63,6 @@ namespace MedalBot
             writer.WriteLine($"USER {ctx.User} 8 * :{ctx.User}");
 
             var commandManager = new CommandManager();
-
             var autoService = new AutoMessageService(ctx);
             autoService.Start();
 
@@ -137,7 +156,7 @@ namespace MedalBot
             {
                 if (string.IsNullOrWhiteSpace(line)) continue;
                 var parts = line.Trim().Split(' ');
-                if (int.TryParse(parts.Last(), out int priority))
+                if (int.TryParse(parts[^1], out int priority))
                 {
                     string msg = string.Join(' ', parts[..^1]);
                     int interval = priority switch
