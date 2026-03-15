@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using MedalBot.Services;
 
 namespace MedalBot
 {
@@ -22,6 +23,8 @@ namespace MedalBot
         public HashSet<string> Admins { get; set; }
         public List<ScheduledMessage> ScheduledMessages { get; set; }
 
+        public Action? ReloadMessages { get; set; }
+
         public Random Random { get; set; }
 
         private readonly object _voicedLock = new();
@@ -31,18 +34,6 @@ namespace MedalBot
             {
                 File.WriteAllLines(file, VoicedUsers.Select(kv => $"{kv.Key} {kv.Value}"));
             }
-        }
-    }
-
-    public class ScheduledMessage
-    {
-        public string Message { get; }
-        public int IntervalMinutes { get; }
-
-        public ScheduledMessage(string message, int interval)
-        {
-            Message = message;
-            IntervalMinutes = interval;
         }
     }
 }

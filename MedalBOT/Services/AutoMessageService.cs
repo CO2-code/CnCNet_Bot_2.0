@@ -4,18 +4,6 @@ using System.Threading.Tasks;
 
 namespace MedalBot.Services
 {
-    public class ScheduledMessage
-    {
-        public string Text { get; }
-        public int IntervalMinutes { get; }
-
-        public ScheduledMessage(string text, int intervalMinutes)
-        {
-            Text = text;
-            IntervalMinutes = intervalMinutes;
-        }
-    }
-
     public class AutoMessageService
     {
         private readonly BotContext _ctx;

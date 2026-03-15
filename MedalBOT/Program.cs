@@ -48,6 +48,8 @@ Port=
                 Random = new Random()
             };
 
+            ctx.ReloadMessages = () => LoadMessages(ctx);
+
             LoadAdmins(ctx);
             LoadVoiced(ctx);
             LoadMessages(ctx);
