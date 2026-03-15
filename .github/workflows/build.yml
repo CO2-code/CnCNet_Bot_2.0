@@ -7,6 +7,19 @@ on:
         description: "Branch to build"
         required: true
         default: "main"
+        type: choice
+        options:
+          - main
+          - dev
+          - feature
+      runtime:
+        description: "Target runtime"
+        required: true
+        default: "win-x64"
+        type: choice
+        options:
+          - win-x64   # 64-bit Windows
+          - win-x86   # 32-bit Windows
 
 jobs:
   build:
@@ -27,13 +40,13 @@ jobs:
         run: dotnet restore
 
       - name: Build
-        run: dotnet publish -c Release -o build
+        run: dotnet publish -c Release -r ${{ github.event.inputs.runtime }} --self-contained false -o build
 
       - name: Create empty txt files
         run: |
           New-Item build/admins.txt -ItemType File
-          New-Item build/voiced.txt -ItemType File
-          New-Item build/messages.txt -ItemType File
+          New-Item build/voicedUsers.txt -ItemType File
+          New-Item build/config.txt -ItemType File
 
       - name: Upload build
         uses: actions/upload-artifact@v4
