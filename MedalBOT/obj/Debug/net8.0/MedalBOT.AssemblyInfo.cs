@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MedalBOT")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+624acf8acada7e3c4bd86ade1794e200dced2be4")]
 [assembly: System.Reflection.AssemblyProductAttribute("MedalBOT")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MedalBOT")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
