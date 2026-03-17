@@ -34,8 +34,9 @@ jobs:
       - name: Create empty txt files
         run: |
           New-Item build/admins.txt -ItemType File
-          New-Item build/voicedUsers.txt -ItemType File
-          New-Item build/config.txt -ItemType File
+          New-Item build/voiced.txt -ItemType File
+          New-Item build/config.ini -ItemType File
+          New-Item build/messages.txt -ItemType File
 
       - name: Upload build
         uses: actions/upload-artifact@v4
