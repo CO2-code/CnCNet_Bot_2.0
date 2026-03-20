@@ -1,312 +1,280 @@
-
-CnCNet_Bot_2.0 – IRC Utility Bot (C#)
-
-Overview
-
-CnCNet_Bot_2.0 is a lightweight IRC bot written in C# for GameSurge and CnCNet channels.
-It supports modular commands, admin-only actions, and automatic user tracking.
-All commands are handled through individual .cs files located in the Commands folder.
+Here’s your **clean rewritten README (full file)**:
 
 ---
 
-1. Features
+# CnCNet_Bot_2.0 – IRC Utility Bot (C#)
 
-Command System:
-Each command is defined in a separate class implementing ICommand.cs.
-Easily add, remove, or modify commands without touching the core logic.
+## Overview
 
-Admin Commands:
-Admins are defined in admins.txt.
+CnCNet_Bot_2.0 is a modular IRC bot built in C# for GameSurge / CnCNet channels.
+
+It supports:
+
+* Command-based architecture
+* Admin controls
+* Auto-voice system
+* Scheduled messages
+* Hostmask tracking
+
+The bot is designed to be extendable and easy to maintain.
+
+---
+
+## Features
+
+### Command System
+
+* Each command is a separate `.cs` file inside `/Commands`
+* Uses a central `CommandManager`
+* No need to touch core logic when adding commands
+
+---
+
+### Admin System
+
+* Admins are stored in `admins.txt`
+* One nickname per line
+
 Example:
 
+```
 N8Diaz
 CO2
+```
 
-Auto Voice System:
+---
 
-When an admin uses !medal nick <type>, the bot saves the user’s hostmask in voiced.txt.
+### Auto Voice System
 
-It auto-voices recognized players upon join.
+* Admins can assign medals using:
 
-Supported medal types:
+```
+!medal <nick> <type>
+```
 
+* The bot:
+
+  * Saves hostmask in `voiced.txt`
+  * Auto-voices user on join
+
+Medal types:
+
+```
 Platinum = 1
 Gold     = 2
 Silver   = 3
-
-
-Custom Messages:
-
-The bot can send automated messages read from messages.txt.
-
-Each message ends with a number that defines its repeat interval (in minutes).
-Example:
-
-Remember to join the official ladder! 50
-Check out www.cncnet.org for updates! 100
-
-
-Future Feature – Seen Tracking (planned):
-
-Planned feature to track the last time a user was active.
-
-Will store timestamps in seen.txt for future use.
-
-
-
+```
 
 ---
 
-2. Folder Structure
+### Scheduled Messages
 
+* Messages loaded from `messages.txt`
+* Automatically sent in channel
+
+Format:
+
+```
+Message text <priority>
+```
+
+Priority → interval mapping:
+
+```
+1 → 50 min
+2 → 100 min
+3 → 150 min
+default → 200 min
+```
+
+Example:
+
+```
+Welcome to the ladder! 1
+Stay active and have fun! 2
+```
+
+---
+
+### Hostmask Tracking
+
+* Tracks nick ↔ hostmask mappings in real time
+* Used for:
+
+  * Auto voice
+  * Future moderation features
+
+---
+
+### Auto Reload System
+
+* Messages reload automatically every 24 hours
+* No restart needed
+
+---
+
+## Folder Structure
+
+```
 MedalBot/
 │
-├── Program.cs              → Main bot connection & event logic
-├── CommandManager.cs        → Handles command registration and execution
-├── ICommand.cs              → Base interface for all commands
-│
+├── Program.cs
 ├── Commands/
-│   ├── GambleCommand.cs     → !gamble <options>
-│   ├── MedalCommand.cs      → !medal nick <type>, !unmedal nick
-│   └── (SeenCommand.cs)     → (future command)
+│   ├── CommandManager.cs
+│   ├── ICommand.cs
+│   ├── GambleCommand.cs
+│   ├── MedalCommand.cs
 │
-├── admins.txt               → List of admin nicks (one per line)
-├── voiced.txt               → Saved hostmasks for autovoice
-├── messages.txt             → Timed broadcast messages
-└── ReadMe.txt               → (this file)
-
-
----
-
-3. Commands
-
-Command	Description	Example	Notes
-
-!gamble <word1> <word2> ...	Picks a random option	!gamble Coke Pepsi	Works for all users
-!medal <nick> <type>	Awards a medal and adds user to auto-voice	!medal N8Diaz Gold	Admins only
-!unmedal <nick>	Removes a medal and unvoices the user	!unmedal CO2	Admins only
-(Planned) !seen <nick>	Shows when a user was last active	(Not yet implemented)	Future update
-
-
+├── Services/
+│   ├── BotContext.cs
+│   ├── AutoMessageService.cs
+│   ├── HostmaskTracker.cs
+│
+├── credentials.ini
+├── admins.txt
+├── voiced.txt
+├── messages.txt
+```
 
 ---
 
-4. Configuration Files :
+## Commands
 
-admins.txt
-
-List of users allowed to run admin commands.
-Each line should contain only the nickname.
-
-voiced.txt
-
-Automatically maintained by the bot.
-Contains the hostmasks of users who should be voiced upon joining.
-
-messages.txt
-
-List of messages to broadcast automatically.
-Each message ends with a number (minutes) indicating when it should repeat.
-
-Example:
-
-Welcome to CnCNet Red Alert 1 Ladder! 50
-Remember to visit www.cncnet.org/community for news! 100
-
+| Command              | Description           | Example            | Access   |
+| -------------------- | --------------------- | ------------------ | -------- |
+| !gamble <options>    | Random choice         | !gamble Coke Pepsi | Everyone |
+| !medal <nick> <type> | Add medal + autovoice | !medal N8Diaz Gold | Admin    |
+| !unmedal <nick>      | Remove medal          | !unmedal CO2       | Admin    |
 
 ---
 
-5. Adding New Commands :
+## Configuration Files
 
-1. Create a new .cs file inside the Commands folder (e.g., PingCommand.cs).
+### credentials.ini
 
+```
+[IRC]
+Nick=
+User=
+Pass=
+Channel=
+ChannelPass=
+Server=
+Port=
+```
 
-2. Implement the ICommand interface:
+---
 
+### admins.txt
+
+* Admin list (one per line)
+
+---
+
+### voiced.txt
+
+* Auto-generated
+* Stores hostmasks for voice system
+
+---
+
+### messages.txt
+
+```
+Message text <priority>
+```
+
+---
+
+## Adding New Commands
+
+1. Create file in `/Commands`:
+
+```
+PingCommand.cs
+```
+
+2. Implement:
+
+```csharp
 public class PingCommand : ICommand
 {
     public string Name => "ping";
-    public (bool handled, string response) Process(string senderNick, string message, string fullLine)
+
+    public (bool handled, string response) Process(BotContext ctx, string sender, string message, string fullLine)
     {
         if (!message.StartsWith("!ping", StringComparison.OrdinalIgnoreCase))
             return (false, null);
-        return (true, $"{senderNick}, pong!");
+
+        return (true, $"{sender}, pong!");
     }
 }
+```
 
+3. Register in `CommandManager.cs`:
 
-3. Register it in CommandManager.cs:
-
+```csharp
 _commands.Add(new PingCommand());
-
-
----
-
-6. Compilation & Run
-
-1. Open the project in Visual Studio 2022+ or any C# IDE.
-
-
-2. Restore dependencies (standard .NET libraries only).
-
-
-3. Build the project.
-
-
-4. Run the generated .exe.
-
-
-5. The bot will connect to the configured IRC server and start listening for messages.
-
+```
 
 ---
 
-6. Notes
+## Build & Run
 
-The bot ignores anything before ! in IRC messages, so it can safely read messages like:
+```
+dotnet build
+dotnet run
+```
 
- PRIVMSG #cncnet-ra :♥10!gamble 1 2
+Or publish:
 
-and still recognize the command.
-
-Always run the bot from the same directory so it can access its .txt files.
-
-All times are stored in UTC.
-
-7. Risks / Actions (N8Diaz review)
-
-1. God class (Program.cs) — already collapsing
-
-Program is doing:
-
-Networking
-Auth flow
-State storage
-Scheduling
-Message parsing
-Command dispatch
-Persistence
-
-This is not “simple”. It’s entangled.
-
-Any change risks breaking unrelated behaviour
-Impossible to unit test meaningfully
-Cognitive load explodes beyond ~1k LOC
-
-Action
-
-Minimum viable separation:
-
-/Core
-  IrcClient.cs
-  MessageParser.cs
-/State
-  UserState.cs
-  VoiceRegistry.cs
-/Services
-  AutoMessageService.cs
-/Commands
-  CommandManager.cs
-Program.cs (composition only)
-
-Program.cs should be orchestration, not logic.
-
-2. Global mutable state everywhere
-
-private static HashSet<string> admins
-private static Dictionary<string, int> voicedUsers
-private static Dictionary<string, string> currentHostmasks
-private static StreamWriter writer
-
-Why this is dangerous
-Race conditions (already use Task.Run)
-Impossible to reason about lifecycle
-Commands can mutate shared state silently
-Cannot ever run two bots in the same process
-Already violating thread safety:
-MessageScheduler seems to spawn infinite tasks
-scheduledMessages can be reloaded while being iterated
-writer is used concurrently without locking
-
-Action
-
-Encapsulate state into a single object and pass it explicitly
-
-class BotContext {
-    public IrcClient Client { get; }
-    public VoiceRegistry Voices { get; }
-}
-
-Static state is the tax we will keep paying forever.
-
-3. Auto message scheduler appears to be broken:
-
-foreach (var msg in scheduledMessages)
-{
-    _ = Task.Run(async () =>
-    {
-        while (true)
-        {
-            await Task.Delay(msg.Interval * 60000);
-            writer?.WriteLine(...)
-        }
-    });
-}
-
-Problems
-
-Every reload spawns new infinite loops
-Messages will duplicate over time
-No cancellation
-Memory leak
-Impossible to stop cleanly
-If this ran for weeks, it would seem to DOS our own channel.
-
-Action
-
-One scheduler loop
-Track next send time
-Support cancellation
-
+```
+dotnet publish -c Release -r win-x86
+```
 
 ---
 
-8. Credits
+## Notes
 
-Developed for CnCNet / Red Alert 1 community.
-Initial design & command system by CO2.
-Code examples adapted (Original Code) from N8Diaz Bot Framework. (N8sBOT)
-Reviewed by N8Diaz
+* Bot responds only to commands starting with `!`
+* Works even with prefixed IRC formatting
+* Run from same directory as `.txt` files
+* Uses UTC internally
 
-Original ReadMe :
+---
 
-# IRC-bot
-A simple IRC bot in C# that connects, authenticates and posts an hourly message.
+## Architecture Notes
 
-Functionality ideas to consider adding:
+### Current State
 
-!gamble - returns a random word based upon the user's input - Done
+* Uses shared `BotContext` for state
+* Services separated (AutoMessage, Hostmask)
+* Commands isolated
 
-!events - returns the current events list e.g. Fight Night 25 Lordy vs Yuzgen 9pm Tonight live on Twitch.tv/yuzgen
+### Known Limitations
 
-!points - tells you how many points a user has (points gained for activeness or something else)
+* No full thread safety yet
+* Scheduler is simple loop-based
+* No persistence database (file-based only)
 
-!register - register for a tournament
+---
 
-!status - check your registration status
+## Planned Features
 
-!bracket - display the tournament bracket and schedule
+* Discord integration (alerts + logs)
+* Ident/Nick tracking system
+* Moderation alerts (bad words detection)
+* Seen system
+* Replay / event tracking
 
-!report - report match results
+---
 
-Implement a system to generate and update the bracket as the tournament progresses.
+## Credits
 
-Admin menu - kick, ban, add medal, ban name, announcement, mute
+* Developed for CnCNet Red Alert 1 community
+* Core system by CO2
+* Architecture influence from N8Diaz bot framework
 
-Connection to discord channel e.g. annoucements posted in both
+---
 
-Highlight text - annoucements, medalist rooms, links
-
-!Medalists - lists players who have a medal
-
-Gives different medal grades per user access level e.g. 10 = gold, 11 = platinum (edited)
+If you want next step → I’ll give you **Discord integration file (ready to drop in)**.
