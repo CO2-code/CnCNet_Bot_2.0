@@ -34,29 +34,39 @@ namespace MedalBot.Services
             await _client.StartAsync();
         }
 
-        private async Task OnMessageReceived(SocketMessage message)
+        private async Task OnMessageReceived(SocketMessage msg)
         {
-            if (message.Author.IsBot) return;
+            if (msg.Author.IsBot) return;
 
-            string content = message.Content;
+            string content = msg.Content;
 
+            Console.WriteLine($"[DISCORD] {msg.Author.Username}: {content}");
+
+            // ===== !say (force send to IRC) =====
+            if (content.StartsWith("!say ", StringComparison.OrdinalIgnoreCase))
+            {
+                string text = content.Substring(5).Trim();
+
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    Console.WriteLine("DEBUG: !say triggered");
+
+                    _ctx.Writer?.WriteLine($"PRIVMSG {_ctx.Channel} :[DC] {msg.Author.Username}: {text}");
+                    _ctx.Writer?.Flush();
+                }
+
+                return;
+            }
+
+            // ===== COMMANDS =====
             if (!content.StartsWith("!")) return;
 
             var commandManager = new CommandManager();
-            string response = commandManager.TryProcess(_ctx, message.Author.Username, content, content);
+            string response = commandManager.TryProcess(_ctx, msg.Author.Username, content, content);
 
             if (!string.IsNullOrEmpty(response))
             {
-                await message.Channel.SendMessageAsync(response);
-            }
-
-            if (!_ctx.RelayDiscordToIrc) return;
-
-            if (message.Content.StartsWith("!say "))
-            {
-                string text = message.Content.Substring(5);
-
-                _ctx.Writer?.WriteLine($"PRIVMSG {_ctx.Channel} :[DC] {message.Author.Username}: {text}");
+                await msg.Channel.SendMessageAsync(response);
             }
         }
     }

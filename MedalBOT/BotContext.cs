@@ -30,7 +30,7 @@ namespace MedalBot
         public DiscordService? Discord { get; set; }
 
         public bool RelayIrcToDiscord { get; set; } = true;
-        public bool RelayDiscordToIrc { get; set; } = false;
+        public bool RelayDiscordToIrc { get; set; } = true;
 
         private readonly object _voicedLock = new();
         public void SaveVoiced(string file = "voiced.txt")
