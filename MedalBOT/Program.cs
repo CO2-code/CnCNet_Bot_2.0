@@ -60,6 +60,7 @@ Token=
             };
 
             ctx.Discord = new DiscordService(discordSection.GetValueOrDefault("Webhook", ""));
+            ctx.Logger = new LoggingService(discordSection.GetValueOrDefault("Webhook", ""));
 
             var discordBot = new DiscordBotService(ctx);
             _ = discordBot.Start(discordSection.GetValueOrDefault("Token", ""));
@@ -93,6 +94,7 @@ Token=
                 string line = await reader.ReadLineAsync();
                 if (line == null) continue;
 
+                ctx.Logger?.Log(line);
                 Console.WriteLine(line);
 
                 if (line.StartsWith("PING"))

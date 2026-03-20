@@ -32,6 +32,8 @@ namespace MedalBot
         public bool RelayIrcToDiscord { get; set; } = true;
         public bool RelayDiscordToIrc { get; set; } = true;
 
+        public LoggingService Logger { get; set; }
+
         private readonly object _voicedLock = new();
         public void SaveVoiced(string file = "voiced.txt")
         {
