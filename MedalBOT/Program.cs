@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace MedalBot
 {
@@ -13,7 +14,6 @@ namespace MedalBot
         {
             const string iniPath = "credentials.ini";
 
-            // Auto-create template if missing
             if (!File.Exists(iniPath))
             {
                 File.WriteAllText(iniPath,
@@ -25,12 +25,21 @@ Channel=
 ChannelPass=
 Server=
 Port=
+
+[Admins]
+Admin1=
+Admin2=
+
+[DISCORD]
+Webhook=
+Token=
 ");
                 Console.WriteLine("⚠️ credentials.ini was missing. A template has been created. Fill it and restart the bot.");
             }
 
-            // Load IRC credentials from ini
             var creds = IniReader.Read(iniPath, "IRC");
+            var adminsSection = IniReader.Read(iniPath, "Admins");
+            var discordSection = IniReader.Read(iniPath, "DISCORD");
 
             var ctx = new BotContext
             {
@@ -43,12 +52,12 @@ Port=
                 ChannelPass = creds.GetValueOrDefault("ChannelPass", ""),
                 VoicedUsers = new System.Collections.Generic.Dictionary<string, int>(StringComparer.OrdinalIgnoreCase),
                 CurrentHostmasks = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                Admins = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase),
+                Admins = new System.Collections.Generic.HashSet<string>(
+                    adminsSection.Values.Where(v => !string.IsNullOrWhiteSpace(v)),
+                    StringComparer.OrdinalIgnoreCase),
                 ScheduledMessages = new System.Collections.Generic.List<ScheduledMessage>(),
                 Random = new Random()
             };
-
-            var discordSection = IniReader.Read(iniPath, "DISCORD");
 
             ctx.Discord = new DiscordService(discordSection.GetValueOrDefault("Webhook", ""));
 
@@ -57,11 +66,10 @@ Port=
 
             ctx.ReloadMessages = () => LoadMessages(ctx);
 
-            LoadAdmins(ctx);
             LoadVoiced(ctx);
             LoadMessages(ctx);
 
-            using var tcp = new System.Net.Sockets.TcpClient(ctx.Server, ctx.Port);
+            using var tcp = new TcpClient(ctx.Server, ctx.Port);
             using var reader = new StreamReader(tcp.GetStream());
             using var writer = new StreamWriter(tcp.GetStream()) { AutoFlush = true };
             ctx.Writer = writer;
@@ -126,20 +134,19 @@ Port=
                             Console.WriteLine($"[Command] {sender}: {response}");
                         }
                     }
+
+                    if (ctx.RelayIrcToDiscord && !string.IsNullOrWhiteSpace(message))
+                    {
+                        if (!message.StartsWith("!"))
+                        {
+                            if (message.Contains("badword"))
+                            {
+                                await ctx.Discord?.SendMessage($"[IRC WARNING] {sender}: {message}");
+                            }
+                        }
+                    }
                 }
             }
-        }
-
-        private static void LoadAdmins(BotContext ctx)
-        {
-            const string adminsFile = "admins.txt";
-            if (!File.Exists(adminsFile)) return;
-
-            ctx.Admins = new System.Collections.Generic.HashSet<string>(
-                File.ReadAllLines(adminsFile)
-                    .Where(l => !string.IsNullOrWhiteSpace(l))
-                    .Select(l => l.Trim()),
-                StringComparer.OrdinalIgnoreCase);
         }
 
         private static void LoadVoiced(BotContext ctx)
@@ -161,22 +168,24 @@ Port=
             if (!File.Exists(messagesFile))
                 File.WriteAllText(messagesFile, "Welcome to the channel! 1\nStay active and have fun! 2");
 
+            var intervalSection = IniReader.Read("credentials.ini", "Intervals");
+
             ctx.ScheduledMessages.Clear();
 
             foreach (var line in File.ReadAllLines(messagesFile))
             {
                 if (string.IsNullOrWhiteSpace(line)) continue;
+
                 var parts = line.Trim().Split(' ');
                 if (int.TryParse(parts[^1], out int priority))
                 {
                     string msg = string.Join(' ', parts[..^1]);
-                    int interval = priority switch
-                    {
-                        1 => 50,
-                        2 => 100,
-                        3 => 150,
-                        _ => 200
-                    };
+
+                    int interval = intervalSection.TryGetValue(priority.ToString(), out var val) &&
+                                   int.TryParse(val, out var parsed)
+                                   ? parsed
+                                   : int.TryParse(intervalSection.GetValueOrDefault("default", "200"), out var def) ? def : 200;
+
                     ctx.ScheduledMessages.Add(new ScheduledMessage(msg, interval));
                 }
             }

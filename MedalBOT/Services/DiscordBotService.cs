@@ -49,6 +49,15 @@ namespace MedalBot.Services
             {
                 await message.Channel.SendMessageAsync(response);
             }
+
+            if (!_ctx.RelayDiscordToIrc) return;
+
+            if (message.Content.StartsWith("!say "))
+            {
+                string text = message.Content.Substring(5);
+
+                _ctx.Writer?.WriteLine($"PRIVMSG {_ctx.Channel} :[DC] {message.Author.Username}: {text}");
+            }
         }
     }
 }
