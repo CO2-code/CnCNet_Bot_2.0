@@ -1,6 +1,3 @@
-Here’s your **clean rewritten README (full file)**:
-
----
 
 # CnCNet_Bot_2.0 – IRC Utility Bot (C#)
 
@@ -276,5 +273,3 @@ dotnet publish -c Release -r win-x86
 * Architecture influence from N8Diaz bot framework
 
 ---
-
-If you want next step → I’ll give you **Discord integration file (ready to drop in)**.
