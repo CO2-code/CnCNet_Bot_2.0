@@ -2,6 +2,10 @@
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Discord;
+using Discord.WebSocket;
+using MedalBot.Commands;
+using MedalBot.Services;
 
 namespace MedalBot.Services
 {

@@ -49,7 +49,11 @@ Port=
             };
 
             var discordSection = IniReader.Read(iniPath, "DISCORD");
+
             ctx.Discord = new DiscordService(discordSection.GetValueOrDefault("Webhook", ""));
+
+            var discordBot = new DiscordBotService(ctx);
+            _ = discordBot.Start(discordSection.GetValueOrDefault("Token", ""));
 
             ctx.ReloadMessages = () => LoadMessages(ctx);
 
