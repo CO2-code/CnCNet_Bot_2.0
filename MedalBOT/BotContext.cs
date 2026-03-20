@@ -27,6 +27,8 @@ namespace MedalBot
 
         public Random Random { get; set; }
 
+        public DiscordService? Discord { get; set; }
+
         private readonly object _voicedLock = new();
         public void SaveVoiced(string file = "voiced.txt")
         {

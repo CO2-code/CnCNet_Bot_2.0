@@ -48,6 +48,9 @@ Port=
                 Random = new Random()
             };
 
+            var discordSection = IniReader.Read(iniPath, "DISCORD");
+            ctx.Discord = new DiscordService(discordSection.GetValueOrDefault("Webhook", ""));
+
             ctx.ReloadMessages = () => LoadMessages(ctx);
 
             LoadAdmins(ctx);
