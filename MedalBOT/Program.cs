@@ -64,6 +64,8 @@ Port=
 
             Console.WriteLine($"Connected to IRC server {ctx.Server}:{ctx.Port}");
 
+            await ctx.Discord?.SendMessage($"Bot connected: {ctx.Nick}");
+
             writer.WriteLine($"NICK {ctx.Nick}");
             writer.WriteLine($"USER {ctx.User} 8 * :{ctx.User}");
 
