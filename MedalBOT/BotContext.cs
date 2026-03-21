@@ -34,6 +34,8 @@ namespace MedalBot
 
         public LoggingService Logger { get; set; }
 
+        public Dictionary<string, string> CommandDescriptions { get; set; }
+
         private readonly object _voicedLock = new();
         public void SaveVoiced(string file = "voiced.txt")
         {

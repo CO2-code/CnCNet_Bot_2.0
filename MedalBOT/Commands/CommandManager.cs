@@ -10,6 +10,7 @@ namespace MedalBot.Commands
         {
             _commands.Add(new GambleCommand());
             _commands.Add(new MedalCommand());
+            _commands.Add(new CommandsCommand());
         }
 
         public string TryProcess(BotContext ctx, string senderNick, string message, string fullLine)

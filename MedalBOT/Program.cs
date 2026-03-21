@@ -40,6 +40,7 @@ Token=
             var creds = IniReader.Read(iniPath, "IRC");
             var adminsSection = IniReader.Read(iniPath, "Admins");
             var discordSection = IniReader.Read(iniPath, "DISCORD");
+            var commandsSection = IniReader.Read(iniPath, "Commands");
 
             var ctx = new BotContext
             {
@@ -56,7 +57,8 @@ Token=
                     adminsSection.Values.Where(v => !string.IsNullOrWhiteSpace(v)),
                     StringComparer.OrdinalIgnoreCase),
                 ScheduledMessages = new System.Collections.Generic.List<ScheduledMessage>(),
-                Random = new Random()
+                CommandDescriptions = commandsSection,
+                Random = new Random()             
             };
 
             ctx.Discord = new DiscordService(discordSection.GetValueOrDefault("Webhook", ""));
