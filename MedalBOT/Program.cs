@@ -41,6 +41,7 @@ Token=
             var adminsSection = IniReader.Read(iniPath, "Admins");
             var discordSection = IniReader.Read(iniPath, "DISCORD");
             var commandsSection = IniReader.Read(iniPath, "Commands");
+            var badWordsSection = IniReader.Read(iniPath, "BADWORDS");
 
             var ctx = new BotContext
             {
@@ -58,6 +59,10 @@ Token=
                     StringComparer.OrdinalIgnoreCase),
                 ScheduledMessages = new System.Collections.Generic.List<ScheduledMessage>(),
                 CommandDescriptions = commandsSection,
+                BadWords = badWordsSection.Values
+                    .Where(v => !string.IsNullOrWhiteSpace(v))
+                    .Select(v => v.ToLower())
+                    .ToList(),
                 Random = new Random()             
             };
 
@@ -139,13 +144,22 @@ Token=
                         }
                     }
 
-                    if (ctx.RelayIrcToDiscord && !string.IsNullOrWhiteSpace(message))
+                    if (!string.IsNullOrWhiteSpace(message))
                     {
                         if (!message.StartsWith("!"))
                         {
-                            if (message.Contains("badword"))
+                            if (message.StartsWith("\x01")) return;
+
+                            string lower = message.ToLower();
+
+                            var matched = ctx.BadWords.FirstOrDefault(w => lower.Contains(w));
+
+                            if (matched != null)
                             {
-                                await ctx.Discord?.SendMessage($"[IRC WARNING] {sender}: {message}");
+                                string alert = $"🚨 WARNING\nUser: {sender}\nMatched: {matched}\nMessage: {message}";
+                                await ctx.Discord?.SendMessage(alert);
+
+                                ctx.Logger?.Log($"[WARNING] {sender}: {message}");
                             }
                         }
                     }
