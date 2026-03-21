@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using MedalBot.Commands;
-using MedalBot.Services;
 
 namespace MedalBot.Services
 {
@@ -11,10 +10,13 @@ namespace MedalBot.Services
     {
         private readonly BotContext _ctx;
         private readonly DiscordSocketClient _client;
+        private ISocketMessageChannel _channel;
+        private readonly ulong _channelId;
 
-        public DiscordBotService(BotContext ctx)
+        public DiscordBotService(BotContext ctx, ulong channelId)
         {
             _ctx = ctx;
+            _channelId = channelId;
 
             _client = new DiscordSocketClient(new DiscordSocketConfig
             {
@@ -24,6 +26,11 @@ namespace MedalBot.Services
             });
 
             _client.MessageReceived += OnMessageReceived;
+
+            _client.Ready += async () =>
+            {
+                _channel = _client.GetChannel(_channelId) as ISocketMessageChannel;
+            };
         }
 
         public async Task Start(string token)
@@ -34,39 +41,34 @@ namespace MedalBot.Services
             await _client.StartAsync();
         }
 
+        public async Task SendIrcMessage(string sender, string message)
+        {
+            if (_channel == null) return;
+
+            await _channel.SendMessageAsync($"[IRC] {sender}: {message}");
+        }
+
         private async Task OnMessageReceived(SocketMessage msg)
         {
             if (msg.Author.IsBot) return;
 
             string content = msg.Content;
 
-            Console.WriteLine($"[DISCORD] {msg.Author.Username}: {content}");
-
-            // ===== !say (force send to IRC) =====
-            if (content.StartsWith("!say ", StringComparison.OrdinalIgnoreCase))
+            if (content.StartsWith("!"))
             {
-                string text = content.Substring(5).Trim();
+                var commandManager = new CommandManager();
+                string response = commandManager.TryProcess(_ctx, msg.Author.Username, content, content);
 
-                if (!string.IsNullOrWhiteSpace(text))
-                {
-                    Console.WriteLine("DEBUG: !say triggered");
-
-                    _ctx.Writer?.WriteLine($"PRIVMSG {_ctx.Channel} :[DC] {msg.Author.Username}: {text}");
-                    _ctx.Writer?.Flush();
-                }
-
-                return;
+                if (!string.IsNullOrEmpty(response))
+                    await msg.Channel.SendMessageAsync(response);
             }
 
-            // ===== COMMANDS =====
-            if (!content.StartsWith("!")) return;
+            if (!_ctx.RelayDiscordToIrc) return;
 
-            var commandManager = new CommandManager();
-            string response = commandManager.TryProcess(_ctx, msg.Author.Username, content, content);
-
-            if (!string.IsNullOrEmpty(response))
+            if (content.StartsWith("!say "))
             {
-                await msg.Channel.SendMessageAsync(response);
+                string text = content.Substring(5);
+                _ctx.Writer?.WriteLine($"PRIVMSG {_ctx.Channel} :[DC] {msg.Author.Username}: {text}");
             }
         }
     }

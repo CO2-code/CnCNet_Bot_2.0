@@ -29,7 +29,7 @@ namespace MedalBot
 
         public DiscordService? Discord { get; set; }
 
-        public bool RelayIrcToDiscord { get; set; } = true;
+        public bool RelayIrcToDiscord { get; set; } = false;
         public bool RelayDiscordToIrc { get; set; } = true;
 
         public LoggingService Logger { get; set; }

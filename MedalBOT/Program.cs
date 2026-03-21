@@ -69,7 +69,8 @@ Token=
             ctx.Discord = new DiscordService(discordSection.GetValueOrDefault("Webhook", ""));
             ctx.Logger = new LoggingService(discordSection.GetValueOrDefault("Webhook", ""));
 
-            var discordBot = new DiscordBotService(ctx);
+            ulong channelId = ulong.TryParse(discordSection.GetValueOrDefault("ChannelId", "0"), out var cid) ? cid : 0;
+            var discordBot = new DiscordBotService(ctx, channelId);
             _ = discordBot.Start(discordSection.GetValueOrDefault("Token", ""));
 
             ctx.ReloadMessages = () => LoadMessages(ctx);
