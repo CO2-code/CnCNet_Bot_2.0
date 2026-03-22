@@ -145,22 +145,26 @@ Token=
                         }
                     }
 
-                    if (!string.IsNullOrWhiteSpace(message))
+                    if (ctx.RelayIrcToDiscord && !string.IsNullOrWhiteSpace(message))
                     {
-                        if (!message.StartsWith("!"))
+                        string clean = message;
+
+                        // remove IRC color codes
+                        clean = System.Text.RegularExpressions.Regex.Replace(clean, @"\x03\d{0,2}", "");
+                        clean = clean.Replace("\x02", "").Replace("\x0F", "");
+
+                        var badWords = IniReader.Read("credentials.ini", "BadWords").Values;
+
+                        foreach (var bad in badWords)
                         {
-                            if (message.StartsWith("\x01")) continue;
+                            if (string.IsNullOrWhiteSpace(bad)) continue;
 
-                            string lower = message.ToLower();
-
-                            var matched = ctx.BadWords.FirstOrDefault(w => lower.Contains(w));
-
-                            if (matched != null)
+                            if (clean.IndexOf(bad, StringComparison.OrdinalIgnoreCase) >= 0)
                             {
-                                string alert = $"🚨 WARNING\nUser: {sender}\nMatched: {matched}\nMessage: {message}";
-                                await ctx.Discord?.SendMessage(alert);
+                                Console.WriteLine($"[WARNING] {sender}: {clean}");
 
-                                ctx.Logger?.Log($"[WARNING] {sender}: {message}");
+                                await ctx.Discord?.SendMessage($"[IRC WARNING] {sender}: {clean}");
+                                break;
                             }
                         }
                     }
