@@ -1,10 +1,11 @@
 ﻿using MedalBot.Commands;
 using MedalBot.Services;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using System.Linq;
 
 namespace MedalBot
 {
@@ -41,7 +42,7 @@ Token=
             var adminsSection = IniReader.Read(iniPath, "Admins");
             var discordSection = IniReader.Read(iniPath, "DISCORD");
             var commandsSection = IniReader.Read(iniPath, "Commands");
-            var badWordsSection = IniReader.Read(iniPath, "BADWORDS");
+            var badWordsSection = IniReader.Read(iniPath, "BadWords");
 
             var ctx = new BotContext
             {
@@ -153,7 +154,7 @@ Token=
                         clean = System.Text.RegularExpressions.Regex.Replace(clean, @"\x03\d{0,2}", "");
                         clean = clean.Replace("\x02", "").Replace("\x0F", "");
 
-                        var badWords = IniReader.Read("credentials.ini", "BadWords").Values;
+                        var badWords = ctx.BadWords;
 
                         foreach (var bad in badWords)
                         {

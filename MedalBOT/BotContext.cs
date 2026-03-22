@@ -36,6 +36,9 @@ namespace MedalBot
 
         public List<string> BadWords { get; set; }
 
+        public Dictionary<string, Dictionary<string, DateTime>> IdentHistory { get; set; }
+            = new(StringComparer.OrdinalIgnoreCase);
+
         public Dictionary<string, string> CommandDescriptions { get; set; }
 
         private readonly object _voicedLock = new();
