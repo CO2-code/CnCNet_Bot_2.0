@@ -149,7 +149,7 @@ Token=
                     {
                         if (!message.StartsWith("!"))
                         {
-                            if (message.StartsWith("\x01")) return;
+                            if (message.StartsWith("\x01")) continue;
 
                             string lower = message.ToLower();
 
