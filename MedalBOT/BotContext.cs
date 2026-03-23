@@ -36,6 +36,8 @@ namespace MedalBot
 
         public List<string> BadWords { get; set; }
 
+        public HashSet<string> CurrentlyVoiced { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
         public Dictionary<string, Dictionary<string, DateTime>> IdentHistory { get; set; }
             = new(StringComparer.OrdinalIgnoreCase);
 

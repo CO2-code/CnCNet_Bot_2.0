@@ -22,10 +22,32 @@ namespace MedalBot.Services
             if (!string.IsNullOrWhiteSpace(nick) && !string.IsNullOrWhiteSpace(hostmask))
                 ctx.CurrentHostmasks[nick] = hostmask;
 
+            // Track +v / -v
+            if (line.Contains(" MODE "))
+            {
+                var parts = line.Split(' ');
+
+                if (parts.Length >= 4 && parts[1] == "MODE")
+                {
+                    string mode = parts[3];
+
+                    if (mode.Contains("+v") && parts.Length >= 5)
+                        ctx.CurrentlyVoiced.Add(parts[4]);
+
+                    if (mode.Contains("-v") && parts.Length >= 5)
+                        ctx.CurrentlyVoiced.Remove(parts[4]);
+                }
+            }
+
             string ident = ExtractIdent(hostmask);
 
-            if (!string.IsNullOrEmpty(ident) && ctx.VoicedUsers.ContainsKey(ident))
+            if (!string.IsNullOrEmpty(ident) &&
+                ctx.VoicedUsers.ContainsKey(ident) &&
+                !ctx.CurrentlyVoiced.Contains(nick))
+            {
                 ctx.Writer?.WriteLine($"PRIVMSG ChanServ :voice {ctx.Channel} {nick}");
+                ctx.CurrentlyVoiced.Add(nick);
+            }
 
             if (string.IsNullOrEmpty(ident) || string.IsNullOrEmpty(nick)) return;
 
