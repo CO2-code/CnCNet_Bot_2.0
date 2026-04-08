@@ -78,6 +78,7 @@ Token=
 
             LoadVoiced(ctx);
             LoadMessages(ctx);
+            ctx.LoadMutedIds();
 
             using var tcp = new TcpClient(ctx.Server, ctx.Port);
             using var reader = new StreamReader(tcp.GetStream());
@@ -129,12 +130,54 @@ Token=
                     joined = true;
                 }
 
-                HostmaskTracker.UpdateHostmask(ctx, line);
+                await HostmaskTracker.UpdateHostmask(ctx, line);
+
+                if (line.Contains(" QUIT "))
+                {
+                    string quitter = MessageParser.GetNick(line);
+                    if (!string.IsNullOrWhiteSpace(quitter))
+                    {
+                        ctx.RemoveNick(quitter);
+                        ctx.Logger?.Log($"[NICK CLEANUP] Removed {quitter} from mute mappings on QUIT");
+                    }
+                }
+
+                if (line.Contains(" NICK "))
+                {
+                    string oldNick = MessageParser.GetNick(line);
+                    string newNick = MessageParser.GetNewNick(line);
+                    if (!string.IsNullOrWhiteSpace(oldNick) && !string.IsNullOrWhiteSpace(newNick))
+                    {
+                        ctx.UpdateNick(oldNick, newNick);
+                    }
+                }
+
+                if (line.Contains(" JOIN "))
+                {
+                    string joiner = MessageParser.GetNick(line);
+                    if (!string.IsNullOrWhiteSpace(joiner))
+                    {
+                        string systemId = ctx.GetSystemId(joiner);
+                        if (!string.IsNullOrWhiteSpace(systemId) && ctx.IsMuted(systemId))
+                        {
+                            writer.WriteLine($"NOTICE {joiner} :MUTE_ADD {systemId}");
+                            ctx.Logger?.Log($"[MUTED NOTIFIED] {joiner} joined while muted (systemId: {systemId})");
+                        }
+                    }
+                }
 
                 if (line.Contains("PRIVMSG"))
                 {
                     string sender = MessageParser.GetNick(line);
                     string message = MessageParser.GetMessage(line);
+
+                    string senderSystemId = ctx.GetSystemId(sender);
+                    if (!string.IsNullOrWhiteSpace(senderSystemId) && ctx.IsMuted(senderSystemId))
+                    {
+                        writer.WriteLine($"NOTICE {sender} :You are muted.");
+                        ctx.Logger?.Log($"[MUTED BLOCKED] {sender} (systemId: {senderSystemId}) attempted: {message}");
+                        continue;
+                    }
 
                     if (!string.IsNullOrWhiteSpace(message))
                     {

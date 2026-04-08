@@ -11,6 +11,7 @@ namespace MedalBot.Commands
             _commands.Add(new GambleCommand());
             _commands.Add(new MedalCommand());
             _commands.Add(new CommandsCommand());
+            _commands.Add(new MuteCommand());
         }
 
         public string TryProcess(BotContext ctx, string senderNick, string message, string fullLine)

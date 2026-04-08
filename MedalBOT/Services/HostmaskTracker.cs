@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace MedalBot.Services
 {
     public static class HostmaskTracker
     {
-        public static async void UpdateHostmask(BotContext ctx, string line)
+        public static async Task UpdateHostmask(BotContext ctx, string line)
         {
             if (!line.StartsWith(":")) return;
 
@@ -21,6 +22,17 @@ namespace MedalBot.Services
 
             if (!string.IsNullOrWhiteSpace(nick) && !string.IsNullOrWhiteSpace(hostmask))
                 ctx.CurrentHostmasks[nick] = hostmask;
+
+            string ident = ExtractIdent(hostmask);
+            if (!string.IsNullOrWhiteSpace(nick) && !string.IsNullOrWhiteSpace(ident))
+            {
+                string systemId = ident.Split('.').LastOrDefault();
+                if (!string.IsNullOrWhiteSpace(systemId))
+                {
+                    ctx.SetSystemId(nick, systemId);
+                    ctx.Logger?.Log($"[SYSTEMID] {nick} -> {systemId}");
+                }
+            }
 
             // Track +v / -v
             if (line.Contains(" MODE "))
@@ -39,7 +51,7 @@ namespace MedalBot.Services
                 }
             }
 
-            string ident = ExtractIdent(hostmask);
+            if (string.IsNullOrEmpty(ident) || string.IsNullOrEmpty(nick)) return;
 
             if (!string.IsNullOrEmpty(ident) &&
                 ctx.VoicedUsers.ContainsKey(ident) &&
@@ -48,8 +60,6 @@ namespace MedalBot.Services
                 ctx.Writer?.WriteLine($"PRIVMSG ChanServ :voice {ctx.Channel} {nick}");
                 ctx.CurrentlyVoiced.Add(nick);
             }
-
-            if (string.IsNullOrEmpty(ident) || string.IsNullOrEmpty(nick)) return;
 
             if (!ctx.IdentHistory.ContainsKey(ident))
                 ctx.IdentHistory[ident] = new Dictionary<string, DateTime>();
@@ -75,7 +85,7 @@ namespace MedalBot.Services
         {
             if (string.IsNullOrWhiteSpace(hostmask)) return null;
             int at = hostmask.IndexOf('@');
-            if (at <= 0) return hostmask;
+            if (at <= 0) return null;
             return hostmask.Substring(0, at);
         }
     }
