@@ -107,6 +107,8 @@ Token=
                 ctx.Logger?.Log(line);
                 Console.WriteLine(line);
 
+                CheckExpiredMutes(ctx);
+
                 if (line.StartsWith("PING"))
                 {
                     writer.WriteLine($"PONG {line.Split(' ')[1]}");
@@ -255,6 +257,24 @@ Token=
 
                     ctx.ScheduledMessages.Add(new ScheduledMessage(msg, interval));
                 }
+            }
+        }
+
+        private static void CheckExpiredMutes(BotContext ctx)
+        {
+            var expiredMutes = new System.Collections.Generic.List<string>();
+            foreach (var systemId in ctx.TimedMutes.Keys.ToList())
+            {
+                if (!ctx.IsTimedMute(systemId, out _))
+                {
+                    expiredMutes.Add(systemId);
+                }
+            }
+
+            foreach (var systemId in expiredMutes)
+            {
+                ctx.TimedMutes.Remove(systemId);
+                ctx.Logger?.Log($"[MUTE EXPIRED] {systemId} mute expired");
             }
         }
     }

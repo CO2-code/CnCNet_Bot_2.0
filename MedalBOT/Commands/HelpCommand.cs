@@ -1,15 +1,15 @@
-﻿using System;
+using System;
 using System.Linq;
 
 namespace MedalBot.Commands
 {
-    public class CommandsCommand : ICommand
+    public class HelpCommand : ICommand
     {
-        public string Name => "commands";
+        public string Name => "help";
 
         public (bool handled, string response) Process(BotContext ctx, string sender, string message, string fullLine)
         {
-            if (!message.Equals("!commands", StringComparison.OrdinalIgnoreCase))
+            if (!message.Equals("!help", StringComparison.OrdinalIgnoreCase))
                 return (false, null);
 
             if (!ctx.Admins.Contains(sender))

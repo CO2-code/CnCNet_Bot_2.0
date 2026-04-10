@@ -105,7 +105,9 @@ namespace MedalBot.Commands
                     3 => "Silver",
                     _ => "Unknown"
                 };
-                return $"{kv.Key}({name})";
+                var nickEntry = ctx.NickToId.FirstOrDefault(n => ExtractIdent(ctx.CurrentHostmasks.GetValueOrDefault(n.Key) ?? "") == kv.Key);
+                string display = string.IsNullOrWhiteSpace(nickEntry.Key) ? kv.Key : $"{nickEntry.Key} ~{kv.Key}";
+                return $"{display}({name})";
             });
 
             return $"🏅 Medallist: {string.Join(", ", items)}";

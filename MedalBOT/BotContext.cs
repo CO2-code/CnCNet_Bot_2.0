@@ -50,6 +50,9 @@ namespace MedalBot
         public HashSet<string> MutedIds { get; set; }
             = new(StringComparer.OrdinalIgnoreCase);
 
+        public Dictionary<string, DateTime> TimedMutes { get; set; }
+            = new(StringComparer.OrdinalIgnoreCase);
+
         private readonly object _voicedLock = new();
         private readonly object _muteLock = new();
         private const string MutedIdsFile = "muted_ids.txt";
@@ -182,6 +185,71 @@ namespace MedalBot
             {
                 return MutedIds.Remove(systemId);
             }
+        }
+
+        public bool AddTimedMute(string systemId, int durationMinutes)
+        {
+            if (string.IsNullOrWhiteSpace(systemId) || durationMinutes <= 0) return false;
+            lock (_muteLock)
+            {
+                if (!MutedIds.Add(systemId)) return false;
+                TimedMutes[systemId] = DateTime.UtcNow.AddMinutes(durationMinutes);
+                return true;
+            }
+        }
+
+        public bool IsTimedMute(string systemId, out TimeSpan? remaining)
+        {
+            remaining = null;
+            if (string.IsNullOrWhiteSpace(systemId)) return false;
+            lock (_muteLock)
+            {
+                if (TimedMutes.TryGetValue(systemId, out var expireTime))
+                {
+                    var now = DateTime.UtcNow;
+                    if (expireTime > now)
+                    {
+                        remaining = expireTime - now;
+                        return true;
+                    }
+                    else
+                    {
+                        TimedMutes.Remove(systemId);
+                        MutedIds.Remove(systemId);
+                        return false;
+                    }
+                }
+                return false;
+            }
+        }
+
+        public Dictionary<string, string> GetMutedUsersList(Dictionary<string, string> nickToIdMap)
+        {
+            lock (_muteLock)
+            {
+                var result = new Dictionary<string, string>();
+                foreach (var systemId in MutedIds)
+                {
+                    var nickEntry = nickToIdMap.FirstOrDefault(kv => kv.Value == systemId);
+                    if (!string.IsNullOrWhiteSpace(nickEntry.Key))
+                    {
+                        if (CurrentHostmasks.TryGetValue(nickEntry.Key, out string hostmask))
+                        {
+                            string ident = ExtractIdent(hostmask);
+                            result[nickEntry.Key] = ident ?? "unknown";
+                        }
+                    }
+                }
+                return result;
+            }
+        }
+
+        private string ExtractIdent(string hostmask)
+        {
+            if (string.IsNullOrWhiteSpace(hostmask)) return null;
+            int at = hostmask.IndexOf('@');
+            if (at <= 0) return null;
+            return hostmask.Substring(0, at);
         }
     }
 }

@@ -10,8 +10,10 @@ namespace MedalBot.Commands
         {
             _commands.Add(new GambleCommand());
             _commands.Add(new MedalCommand());
-            _commands.Add(new CommandsCommand());
+            _commands.Add(new HelpCommand());
             _commands.Add(new MuteCommand());
+            _commands.Add(new ChanServCommand());
+            _commands.Add(new SpamServCommand());
         }
 
         public string TryProcess(BotContext ctx, string senderNick, string message, string fullLine)
