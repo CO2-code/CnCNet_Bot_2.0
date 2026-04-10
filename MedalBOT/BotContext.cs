@@ -53,6 +53,10 @@ namespace MedalBot
         public Dictionary<string, DateTime> TimedMutes { get; set; }
             = new(StringComparer.OrdinalIgnoreCase);
 
+        // Track pending service requests (command ID → requester info)
+        public Dictionary<string, (string RequesterNick, bool IsDiscord)> PendingServiceRequests { get; set; }
+            = new();
+
         private readonly object _voicedLock = new();
         private readonly object _muteLock = new();
         private const string MutedIdsFile = "muted_ids.txt";
@@ -250,6 +254,26 @@ namespace MedalBot
             int at = hostmask.IndexOf('@');
             if (at <= 0) return null;
             return hostmask.Substring(0, at);
+        }
+
+        public void TrackServiceRequest(string commandId, string requesterNick, bool isDiscord)
+        {
+            PendingServiceRequests[commandId] = (requesterNick, isDiscord);
+        }
+
+        public bool GetServiceRequest(string commandId, out string requesterNick, out bool isDiscord)
+        {
+            requesterNick = null;
+            isDiscord = false;
+            
+            if (PendingServiceRequests.TryGetValue(commandId, out var request))
+            {
+                requesterNick = request.RequesterNick;
+                isDiscord = request.IsDiscord;
+                PendingServiceRequests.Remove(commandId);
+                return true;
+            }
+            return false;
         }
     }
 }

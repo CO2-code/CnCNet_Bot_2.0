@@ -13,12 +13,14 @@ namespace MedalBot.Services
         private ISocketMessageChannel _channel;
         private readonly ulong _channelId;
         private SayCommand _sayCommand;
+        private ChanServCommand _chanServCommand;
 
         public DiscordBotService(BotContext ctx, ulong channelId)
         {
             _ctx = ctx;
             _channelId = channelId;
             _sayCommand = new SayCommand();
+            _chanServCommand = new ChanServCommand();
 
             _client = new DiscordSocketClient(new DiscordSocketConfig
             {
@@ -58,11 +60,20 @@ namespace MedalBot.Services
 
             if (content.StartsWith("!"))
             {
-                var commandManager = new CommandManager();
-                string response = commandManager.TryProcess(_ctx, msg.Author.Username, content, content);
-
-                if (!string.IsNullOrEmpty(response))
+                // Check for ChanServ commands from Discord
+                var (handled, response) = _chanServCommand.ProcessDiscord(_ctx, msg.Author.Username, content);
+                if (handled && !string.IsNullOrEmpty(response))
+                {
                     await msg.Channel.SendMessageAsync(response);
+                    return;
+                }
+
+                // Regular command processing
+                var commandManager = new CommandManager();
+                string cmdResponse = commandManager.TryProcess(_ctx, msg.Author.Username, content, content);
+
+                if (!string.IsNullOrEmpty(cmdResponse))
+                    await msg.Channel.SendMessageAsync(cmdResponse);
             }
 
             if (!_ctx.RelayDiscordToIrc) return;

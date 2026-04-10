@@ -140,14 +140,32 @@ Token=
                     ParseWhoResponse(ctx, line);
                 }
 
-                // Relay ChanServ/SpamServ NOTICE replies to channel
+                // Relay ChanServ/SpamServ NOTICE replies to channel or Discord
                 if (line.Contains("NOTICE") && line.Contains("ChanServ"))
                 {
                     string message = MessageParser.GetMessage(line);
                     if (!string.IsNullOrWhiteSpace(message))
                     {
-                        writer.WriteLine($"PRIVMSG {ctx.Channel} :{message}");
-                        ctx.Logger?.Log($"[CHANSERV RELAY] {message}");
+                        // Extract last command ID - simple FIFO approach for recent requests
+                        var lastRequest = ctx.PendingServiceRequests.LastOrDefault();
+                        if (lastRequest.Key != null && ctx.GetServiceRequest(lastRequest.Key, out string requesterNick, out bool isDiscord))
+                        {
+                            ctx.Logger?.Log($"[CHANSERV RELAY] Sending to {(isDiscord ? "Discord" : "IRC")}: {message}");
+                            if (isDiscord)
+                            {
+                                await ctx.Discord?.SendMessage($"**{requesterNick}** - {message}");
+                            }
+                            else
+                            {
+                                writer.WriteLine($"PRIVMSG {ctx.Channel} :{message}");
+                            }
+                        }
+                        else
+                        {
+                            // No pending request, relay to IRC channel
+                            writer.WriteLine($"PRIVMSG {ctx.Channel} :{message}");
+                            ctx.Logger?.Log($"[CHANSERV RELAY] {message}");
+                        }
                     }
                 }
 

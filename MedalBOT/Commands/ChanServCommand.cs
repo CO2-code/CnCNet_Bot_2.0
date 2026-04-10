@@ -17,7 +17,7 @@ namespace MedalBot.Commands
                 return (true, "You must be an admin to use ChanServ commands.");
 
             if (message.StartsWith("!blist"))
-                return HandleBanList(ctx, senderNick);
+                return HandleBanList(ctx, senderNick, false);
 
             if (message.StartsWith("!addban"))
                 return HandleAddBan(ctx, senderNick, message);
@@ -31,10 +31,36 @@ namespace MedalBot.Commands
             return (false, null);
         }
 
-        private (bool, string) HandleBanList(BotContext ctx, string senderNick)
+        public (bool handled, string response) ProcessDiscord(BotContext ctx, string senderNick, string message)
         {
+            if (!message.StartsWith("!blist") && !message.StartsWith("!addban") && 
+                !message.StartsWith("!delban") && !message.StartsWith("!tb"))
+                return (false, null);
+
+            if (!ctx.Admins.Contains(senderNick))
+                return (true, "You must be an admin to use ChanServ commands.");
+
+            if (message.StartsWith("!blist"))
+                return HandleBanList(ctx, senderNick, true);
+
+            if (message.StartsWith("!addban"))
+                return HandleAddBan(ctx, senderNick, message);
+
+            if (message.StartsWith("!delban"))
+                return HandleDelBan(ctx, senderNick, message);
+
+            if (message.StartsWith("!tb"))
+                return HandleTimedBan(ctx, senderNick, message);
+
+            return (false, null);
+        }
+
+        private (bool, string) HandleBanList(BotContext ctx, string senderNick, bool isDiscord)
+        {
+            string commandId = $"blist_{DateTime.UtcNow.Ticks}";
+            ctx.TrackServiceRequest(commandId, senderNick, isDiscord);
             ctx.Writer?.WriteLine($"PRIVMSG ChanServ :bans {ctx.Channel}");
-            ctx.Logger?.Log($"[CHANSERV] {senderNick} requested banlist for {ctx.Channel}");
+            ctx.Logger?.Log($"[CHANSERV] {senderNick} requested banlist for {ctx.Channel} (ID: {commandId})");
             return (false, null);
         }
 
@@ -81,4 +107,6 @@ namespace MedalBot.Commands
         }
     }
 }
+
+
 
