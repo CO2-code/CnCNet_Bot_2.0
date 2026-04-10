@@ -9,14 +9,14 @@ namespace MedalBot.Commands
 
         public (bool handled, string response) Process(BotContext ctx, string senderNick, string message, string fullLine)
         {
-            if (!message.StartsWith("!banlist") && !message.StartsWith("!addban") && 
+            if (!message.StartsWith("!blist") && !message.StartsWith("!addban") && 
                 !message.StartsWith("!delban") && !message.StartsWith("!tb"))
                 return (false, null);
 
             if (!ctx.Admins.Contains(senderNick))
                 return (true, "You must be an admin to use ChanServ commands.");
 
-            if (message.StartsWith("!banlist"))
+            if (message.StartsWith("!blist"))
                 return HandleBanList(ctx, senderNick);
 
             if (message.StartsWith("!addban"))
@@ -35,7 +35,7 @@ namespace MedalBot.Commands
         {
             ctx.Writer?.WriteLine($"PRIVMSG ChanServ :bans {ctx.Channel}");
             ctx.Logger?.Log($"[CHANSERV] {senderNick} requested banlist for {ctx.Channel}");
-            return (true, $"?? Requesting ban list from ChanServ...");
+            return (false, null);
         }
 
         private (bool, string) HandleAddBan(BotContext ctx, string senderNick, string message)
@@ -49,7 +49,7 @@ namespace MedalBot.Commands
 
             ctx.Writer?.WriteLine($"PRIVMSG ChanServ :addban {ctx.Channel} {target} {reason}");
             ctx.Logger?.Log($"[CHANSERV] {senderNick} added ban for {target} in {ctx.Channel}");
-            return (true, $"?? Sending ban request for {target}...");
+            return (false, null);
         }
 
         private (bool, string) HandleDelBan(BotContext ctx, string senderNick, string message)
@@ -62,7 +62,7 @@ namespace MedalBot.Commands
 
             ctx.Writer?.WriteLine($"PRIVMSG ChanServ :delban {ctx.Channel} {target}");
             ctx.Logger?.Log($"[CHANSERV] {senderNick} removed ban for {target} in {ctx.Channel}");
-            return (true, $"? Sending unban request for {target}...");
+            return (false, null);
         }
 
         private (bool, string) HandleTimedBan(BotContext ctx, string senderNick, string message)
@@ -77,7 +77,8 @@ namespace MedalBot.Commands
 
             ctx.Writer?.WriteLine($"PRIVMSG ChanServ :addtimedban {ctx.Channel} {target} {duration} {reason}");
             ctx.Logger?.Log($"[CHANSERV] {senderNick} added timed ban for {target} ({duration}) in {ctx.Channel}");
-            return (true, $"?? Sending {duration} timed ban for {target}...");
+            return (false, null);
         }
     }
 }
+

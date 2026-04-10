@@ -32,7 +32,7 @@ namespace MedalBot.Commands
         {
             ctx.Writer?.WriteLine($"PRIVMSG SpamServ :listbadwords {ctx.Channel}");
             ctx.Logger?.Log($"[SPAMSERV] {senderNick} requested badwords list for {ctx.Channel}");
-            return (true, $"?? Requesting bad words list from SpamServ...");
+            return (false, null);
         }
 
         private (bool, string) HandleAddBadWord(BotContext ctx, string senderNick, string message)
@@ -46,7 +46,7 @@ namespace MedalBot.Commands
 
             ctx.Writer?.WriteLine($"PRIVMSG SpamServ :addbadword {ctx.Channel} {word} {reason}");
             ctx.Logger?.Log($"[SPAMSERV] {senderNick} added bad word '{word}' to {ctx.Channel}");
-            return (true, $"?? Adding '{word}' to bad words list...");
+            return (false, null);
         }
 
         private (bool, string) HandleDelBadWord(BotContext ctx, string senderNick, string message)
@@ -59,7 +59,8 @@ namespace MedalBot.Commands
 
             ctx.Writer?.WriteLine($"PRIVMSG SpamServ :delbadword {ctx.Channel} {word}");
             ctx.Logger?.Log($"[SPAMSERV] {senderNick} removed bad word '{word}' from {ctx.Channel}");
-            return (true, $"? Removing '{word}' from bad words list...");
+            return (false, null);
         }
     }
 }
+

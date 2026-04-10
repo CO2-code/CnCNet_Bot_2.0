@@ -12,11 +12,13 @@ namespace MedalBot.Services
         private readonly DiscordSocketClient _client;
         private ISocketMessageChannel _channel;
         private readonly ulong _channelId;
+        private SayCommand _sayCommand;
 
         public DiscordBotService(BotContext ctx, ulong channelId)
         {
             _ctx = ctx;
             _channelId = channelId;
+            _sayCommand = new SayCommand();
 
             _client = new DiscordSocketClient(new DiscordSocketConfig
             {
@@ -65,10 +67,9 @@ namespace MedalBot.Services
 
             if (!_ctx.RelayDiscordToIrc) return;
 
-            if (content.StartsWith("!say "))
+            if (_sayCommand.TryHandleDiscordSay(_ctx, content))
             {
-                string text = content.Substring(5);
-                _ctx.Writer?.WriteLine($"PRIVMSG {_ctx.Channel} :[DC] {msg.Author.Username}: {text}");
+                return;
             }
         }
     }

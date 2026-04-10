@@ -14,6 +14,7 @@ namespace MedalBot.Commands
             _commands.Add(new MuteCommand());
             _commands.Add(new ChanServCommand());
             _commands.Add(new SpamServCommand());
+            _commands.Add(new SayCommand());
         }
 
         public string TryProcess(BotContext ctx, string senderNick, string message, string fullLine)
