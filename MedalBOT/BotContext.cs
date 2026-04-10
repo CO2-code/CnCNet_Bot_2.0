@@ -57,6 +57,10 @@ namespace MedalBot
         public Dictionary<string, (string RequesterNick, bool IsDiscord)> PendingServiceRequests { get; set; }
             = new();
 
+        // Buffer for accumulating ChanServ responses
+        public Dictionary<string, System.Collections.Generic.List<string>> ServiceResponseBuffer { get; set; }
+            = new();
+
         private readonly object _voicedLock = new();
         private readonly object _muteLock = new();
         private const string MutedIdsFile = "muted_ids.txt";

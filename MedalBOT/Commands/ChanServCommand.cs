@@ -9,15 +9,13 @@ namespace MedalBot.Commands
 
         public (bool handled, string response) Process(BotContext ctx, string senderNick, string message, string fullLine)
         {
-            if (!message.StartsWith("!blist") && !message.StartsWith("!addban") && 
-                !message.StartsWith("!delban") && !message.StartsWith("!tb"))
+            // !blist is Discord-only, handled via ProcessDiscord
+            // Only allow !addban, !delban, !tb from IRC
+            if (!message.StartsWith("!addban") && !message.StartsWith("!delban") && !message.StartsWith("!tb"))
                 return (false, null);
 
             if (!ctx.Admins.Contains(senderNick))
                 return (true, "You must be an admin to use ChanServ commands.");
-
-            if (message.StartsWith("!blist"))
-                return HandleBanList(ctx, senderNick, false);
 
             if (message.StartsWith("!addban"))
                 return HandleAddBan(ctx, senderNick, message);
@@ -33,6 +31,7 @@ namespace MedalBot.Commands
 
         public (bool handled, string response) ProcessDiscord(BotContext ctx, string senderNick, string message)
         {
+            // Discord can use !blist and other commands
             if (!message.StartsWith("!blist") && !message.StartsWith("!addban") && 
                 !message.StartsWith("!delban") && !message.StartsWith("!tb"))
                 return (false, null);
@@ -57,10 +56,10 @@ namespace MedalBot.Commands
 
         private (bool, string) HandleBanList(BotContext ctx, string senderNick, bool isDiscord)
         {
-            string commandId = $"blist_{DateTime.UtcNow.Ticks}";
+            string commandId = $"blist_{DateTime.UtcNow.Ticks}_{senderNick}";
             ctx.TrackServiceRequest(commandId, senderNick, isDiscord);
             ctx.Writer?.WriteLine($"PRIVMSG ChanServ :bans {ctx.Channel}");
-            ctx.Logger?.Log($"[CHANSERV] {senderNick} requested banlist for {ctx.Channel} (ID: {commandId})");
+            ctx.Logger?.Log($"[CHANSERV] {senderNick} requested banlist for {ctx.Channel} (ID: {commandId}) - Discord: {isDiscord}");
             return (false, null);
         }
 
@@ -107,6 +106,7 @@ namespace MedalBot.Commands
         }
     }
 }
+
 
 
 

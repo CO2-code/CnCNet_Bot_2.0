@@ -147,17 +147,45 @@ Token=
                     if (!string.IsNullOrWhiteSpace(noticeContent))
                     {
                         var lastRequest = ctx.PendingServiceRequests.LastOrDefault();
-                        if (lastRequest.Key != null && ctx.GetServiceRequest(lastRequest.Key, out string requesterNick, out bool isDiscord))
+                        if (lastRequest.Key != null)
                         {
-                            ctx.Logger?.Log($"[CHANSERV RELAY] To {(isDiscord ? "Discord" : "IRC")}: {noticeContent}");
+                            // Accumulate responses in buffer
+                            if (!ctx.ServiceResponseBuffer.ContainsKey(lastRequest.Key))
+                                ctx.ServiceResponseBuffer[lastRequest.Key] = new System.Collections.Generic.List<string>();
+                            
+                            ctx.ServiceResponseBuffer[lastRequest.Key].Add(noticeContent);
+                            ctx.Logger?.Log($"[CHANSERV] Buffering response: {noticeContent}");
+                        }
+                    }
+                    continue;
+                }
+
+                // Check if we've received "end of response" from ChanServ (blank line or end marker)
+                if (ctx.PendingServiceRequests.Count > 0 && !line.Contains("NOTICE") && !line.Contains("ChanServ"))
+                {
+                    // Send accumulated responses
+                    var lastRequest = ctx.PendingServiceRequests.LastOrDefault();
+                    if (lastRequest.Key != null && ctx.ServiceResponseBuffer.ContainsKey(lastRequest.Key))
+                    {
+                        var responses = ctx.ServiceResponseBuffer[lastRequest.Key];
+                        if (responses.Count > 0 && ctx.GetServiceRequest(lastRequest.Key, out string requesterNick, out bool isDiscord))
+                        {
+                            string fullResponse = string.Join("\n", responses);
+                            ctx.Logger?.Log($"[CHANSERV RELAY] Sending {responses.Count} lines to {(isDiscord ? "Discord" : "IRC")}");
+                            
                             if (isDiscord)
                             {
-                                await ctx.Discord?.SendMessage($"**{requesterNick}** - {noticeContent}");
+                                await ctx.Discord?.SendMessage($"**{requesterNick}** banlist:\n```\n{fullResponse}\n```");
                             }
                             else
                             {
-                                writer.WriteLine($"PRIVMSG {ctx.Channel} :{noticeContent}");
+                                foreach (var resp in responses)
+                                {
+                                    writer.WriteLine($"PRIVMSG {ctx.Channel} :{resp}");
+                                }
                             }
+                            
+                            ctx.ServiceResponseBuffer.Remove(lastRequest.Key);
                         }
                     }
                 }
