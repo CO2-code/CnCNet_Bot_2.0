@@ -9,18 +9,8 @@ namespace MedalBot.Commands
 
         public (bool handled, string response) Process(BotContext ctx, string senderNick, string message, string fullLine)
         {
-            if (!message.StartsWith("!say"))
-                return (false, null);
-
-            if (!ctx.Admins.Contains(senderNick))
-                return (true, "You must be an admin to use say commands.");
-
-            if (message.StartsWith("!sayto "))
-                return HandleSayTo(ctx, senderNick, message);
-
-            if (message.StartsWith("!say "))
-                return HandleSay(ctx, senderNick, message);
-
+            // !say and !sayto are Discord-only commands (Discord ? IRC only)
+            // Not available from IRC channel
             return (false, null);
         }
 
@@ -37,35 +27,32 @@ namespace MedalBot.Commands
                 return false;
 
             ctx.Writer?.WriteLine($"PRIVMSG {ctx.Channel} :{text}");
+            ctx.Logger?.Log($"[DISCORD SAY] {text}");
             return true;
         }
 
-        private (bool, string) HandleSay(BotContext ctx, string senderNick, string message)
+        public bool TryHandleDiscordSayTo(BotContext ctx, string message)
         {
-            if (message.Length <= 5)
-                return (true, "Usage: !say <message>");
+            if (!message.StartsWith("!sayto "))
+                return false;
 
-            string text = message.Substring(5).Trim();
-            if (string.IsNullOrWhiteSpace(text))
-                return (true, "Usage: !say <message>");
+            if (!ctx.RelayDiscordToIrc)
+                return false;
 
-            ctx.Logger?.Log($"[SAY] {senderNick} said: {text}");
-            return (true, text);
-        }
-
-        private (bool, string) HandleSayTo(BotContext ctx, string senderNick, string message)
-        {
             var parts = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 3)
-                return (true, "Usage: !sayto <nick> <message>");
+                return false;
 
             string targetNick = parts[1];
             string text = string.Join(" ", parts.Skip(2));
+            if (string.IsNullOrWhiteSpace(text))
+                return false;
 
             ctx.Writer?.WriteLine($"PRIVMSG {targetNick} :{text}");
-            ctx.Logger?.Log($"[SAYTO] {senderNick} sent PM to {targetNick}: {text}");
-            return (false, null);
+            ctx.Logger?.Log($"[DISCORD SAYTO] Sent PM to {targetNick}: {text}");
+            return true;
         }
     }
 }
+
 

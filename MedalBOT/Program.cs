@@ -134,6 +134,23 @@ Token=
 
                 await HostmaskTracker.UpdateHostmask(ctx, line);
 
+                // Parse WHO responses (IRC 352 code)
+                if (line.Contains(" 352 "))
+                {
+                    ParseWhoResponse(ctx, line);
+                }
+
+                // Relay ChanServ/SpamServ NOTICE replies to channel
+                if (line.Contains("NOTICE") && line.Contains("ChanServ"))
+                {
+                    string message = MessageParser.GetMessage(line);
+                    if (!string.IsNullOrWhiteSpace(message))
+                    {
+                        writer.WriteLine($"PRIVMSG {ctx.Channel} :{message}");
+                        ctx.Logger?.Log($"[CHANSERV RELAY] {message}");
+                    }
+                }
+
                 if (line.Contains(" QUIT "))
                 {
                     string quitter = MessageParser.GetNick(line);
@@ -276,6 +293,25 @@ Token=
                 ctx.TimedMutes.Remove(systemId);
                 ctx.Logger?.Log($"[MUTE EXPIRED] {systemId} mute expired");
             }
+        }
+
+        private static void ParseWhoResponse(BotContext ctx, string line)
+        {
+            // IRC 352 format: :server 352 botnick channel ident host server nick H :hops realname
+            // Example: :server 352 bot #channel ~ident host.com server nick H :0 Real Name
+            var parts = line.Split(' ');
+            if (parts.Length < 8) return;
+
+            string channel = parts[3];
+            string ident = parts[4];
+            string host = parts[5];
+            string nick = parts[7];
+
+            if (string.IsNullOrWhiteSpace(nick) || nick.StartsWith(":")) return;
+
+            string hostmask = $"{ident}@{host}";
+            ctx.CurrentHostmasks[nick] = hostmask;
+            ctx.Logger?.Log($"[WHO] {nick}: {hostmask}");
         }
     }
 }

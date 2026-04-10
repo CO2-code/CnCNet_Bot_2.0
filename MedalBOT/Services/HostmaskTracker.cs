@@ -20,6 +20,10 @@ namespace MedalBot.Services
             string hostmask = line.Substring(bang + 1, spaceAfter - bang - 1);
             string nick = MessageParser.GetNick(line);
 
+            // Skip IRC services (ChanServ, SpamServ, AuthServ, etc.)
+            if (!string.IsNullOrWhiteSpace(nick) && (nick.EndsWith("Serv") || nick == "Services"))
+                return;
+
             if (!string.IsNullOrWhiteSpace(nick) && !string.IsNullOrWhiteSpace(hostmask))
                 ctx.CurrentHostmasks[nick] = hostmask;
 

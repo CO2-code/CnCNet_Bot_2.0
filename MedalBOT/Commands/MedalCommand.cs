@@ -48,7 +48,11 @@ namespace MedalBot.Commands
                 return (true, "Invalid medal type. Use: Platinum, Gold, or Silver.");
 
             if (!ctx.CurrentHostmasks.TryGetValue(targetNick, out string hostmask) || string.IsNullOrWhiteSpace(hostmask))
-                return (true, $"⚠️ Could not find hostmask for {targetNick}. Ask them to send a message or rejoin.");
+            {
+                ctx.Writer?.WriteLine($"WHO {targetNick}");
+                ctx.Logger?.Log($"[MEDAL] Requesting WHO for {targetNick}");
+                return (true, $"Fetching user info for {targetNick}...");
+            }
 
             string ident = ExtractIdent(hostmask);
             if (string.IsNullOrEmpty(ident)) return (true, "⚠️ Could not extract ident from hostmask.");
@@ -77,7 +81,11 @@ namespace MedalBot.Commands
             string targetNick = parts[1];
 
             if (!ctx.CurrentHostmasks.TryGetValue(targetNick, out string hostmask) || string.IsNullOrWhiteSpace(hostmask))
-                return (true, $"⚠️ Could not find hostmask for {targetNick}.");
+            {
+                ctx.Writer?.WriteLine($"WHO {targetNick}");
+                ctx.Logger?.Log($"[UNMEDAL] Requesting WHO for {targetNick}");
+                return (true, $"Fetching user info for {targetNick}...");
+            }
 
             string ident = ExtractIdent(hostmask);
             if (string.IsNullOrEmpty(ident)) return (true, "⚠️ Could not extract ident from hostmask.");

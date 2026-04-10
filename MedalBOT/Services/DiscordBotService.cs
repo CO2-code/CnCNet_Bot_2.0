@@ -67,10 +67,12 @@ namespace MedalBot.Services
 
             if (!_ctx.RelayDiscordToIrc) return;
 
+            // Handle Discord-to-IRC say commands
             if (_sayCommand.TryHandleDiscordSay(_ctx, content))
-            {
                 return;
-            }
+
+            if (_sayCommand.TryHandleDiscordSayTo(_ctx, content))
+                return;
         }
     }
 }
