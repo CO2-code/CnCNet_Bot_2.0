@@ -140,31 +140,24 @@ Token=
                     ParseWhoResponse(ctx, line);
                 }
 
-                // Relay ChanServ/SpamServ NOTICE replies to channel or Discord
-                if (line.Contains("NOTICE") && line.Contains("ChanServ"))
+                // Capture ChanServ NOTICE replies (sent to bot nick for service requests)
+                if (line.Contains("NOTICE") && line.Contains("ChanServ") && ctx.PendingServiceRequests.Count > 0)
                 {
-                    string message = MessageParser.GetMessage(line);
-                    if (!string.IsNullOrWhiteSpace(message))
+                    string noticeContent = MessageParser.GetMessage(line);
+                    if (!string.IsNullOrWhiteSpace(noticeContent))
                     {
-                        // Extract last command ID - simple FIFO approach for recent requests
                         var lastRequest = ctx.PendingServiceRequests.LastOrDefault();
                         if (lastRequest.Key != null && ctx.GetServiceRequest(lastRequest.Key, out string requesterNick, out bool isDiscord))
                         {
-                            ctx.Logger?.Log($"[CHANSERV RELAY] Sending to {(isDiscord ? "Discord" : "IRC")}: {message}");
+                            ctx.Logger?.Log($"[CHANSERV RELAY] To {(isDiscord ? "Discord" : "IRC")}: {noticeContent}");
                             if (isDiscord)
                             {
-                                await ctx.Discord?.SendMessage($"**{requesterNick}** - {message}");
+                                await ctx.Discord?.SendMessage($"**{requesterNick}** - {noticeContent}");
                             }
                             else
                             {
-                                writer.WriteLine($"PRIVMSG {ctx.Channel} :{message}");
+                                writer.WriteLine($"PRIVMSG {ctx.Channel} :{noticeContent}");
                             }
-                        }
-                        else
-                        {
-                            // No pending request, relay to IRC channel
-                            writer.WriteLine($"PRIVMSG {ctx.Channel} :{message}");
-                            ctx.Logger?.Log($"[CHANSERV RELAY] {message}");
                         }
                     }
                 }
