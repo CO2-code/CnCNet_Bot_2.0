@@ -155,39 +155,38 @@ Token=
                             
                             ctx.ServiceResponseBuffer[lastRequest.Key].Add(noticeContent);
                             ctx.Logger?.Log($"[CHANSERV] Buffering response: {noticeContent}");
+                            
+                            // Check for end markers: "None" or "Found X matches."
+                            bool isEndMarker = noticeContent.Equals("None", StringComparison.OrdinalIgnoreCase) || 
+                                              noticeContent.StartsWith("Found ", StringComparison.OrdinalIgnoreCase);
+                            
+                            if (isEndMarker)
+                            {
+                                // End of ChanServ response - send accumulated responses
+                                var responses = ctx.ServiceResponseBuffer[lastRequest.Key];
+                                if (responses.Count > 0 && ctx.GetServiceRequest(lastRequest.Key, out string requesterNick, out bool isDiscord))
+                                {
+                                    string fullResponse = string.Join("\n", responses);
+                                    ctx.Logger?.Log($"[CHANSERV RELAY] Sending {responses.Count} lines to {(isDiscord ? "Discord" : "IRC")}");
+                                    
+                                    if (isDiscord)
+                                    {
+                                        await ctx.Discord?.SendMessage($"**{requesterNick}** banlist:\n```\n{fullResponse}\n```");
+                                    }
+                                    else
+                                    {
+                                        foreach (var resp in responses)
+                                        {
+                                            writer.WriteLine($"PRIVMSG {ctx.Channel} :{resp}");
+                                        }
+                                    }
+                                    
+                                    ctx.ServiceResponseBuffer.Remove(lastRequest.Key);
+                                }
+                            }
                         }
                     }
                     continue;
-                }
-
-                // Check if we've received "end of response" from ChanServ (blank line or end marker)
-                if (ctx.PendingServiceRequests.Count > 0 && !line.Contains("NOTICE") && !line.Contains("ChanServ"))
-                {
-                    // Send accumulated responses
-                    var lastRequest = ctx.PendingServiceRequests.LastOrDefault();
-                    if (lastRequest.Key != null && ctx.ServiceResponseBuffer.ContainsKey(lastRequest.Key))
-                    {
-                        var responses = ctx.ServiceResponseBuffer[lastRequest.Key];
-                        if (responses.Count > 0 && ctx.GetServiceRequest(lastRequest.Key, out string requesterNick, out bool isDiscord))
-                        {
-                            string fullResponse = string.Join("\n", responses);
-                            ctx.Logger?.Log($"[CHANSERV RELAY] Sending {responses.Count} lines to {(isDiscord ? "Discord" : "IRC")}");
-                            
-                            if (isDiscord)
-                            {
-                                await ctx.Discord?.SendMessage($"**{requesterNick}** banlist:\n```\n{fullResponse}\n```");
-                            }
-                            else
-                            {
-                                foreach (var resp in responses)
-                                {
-                                    writer.WriteLine($"PRIVMSG {ctx.Channel} :{resp}");
-                                }
-                            }
-                            
-                            ctx.ServiceResponseBuffer.Remove(lastRequest.Key);
-                        }
-                    }
                 }
 
                 if (line.Contains(" QUIT "))
