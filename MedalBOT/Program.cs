@@ -164,14 +164,26 @@ Token=
                             {
                                 // End of ChanServ response - send accumulated responses
                                 var responses = ctx.ServiceResponseBuffer[lastRequest.Key];
-                                if (responses.Count > 0 && ctx.GetServiceRequest(lastRequest.Key, out string requesterNick, out bool isDiscord))
+                                ctx.Logger?.Log($"[CHANSERV] End marker detected. Got {responses.Count} buffered responses");
+                                
+                                if (responses.Count > 0)
                                 {
+                                    // Get request info BEFORE removing from pending
+                                    var requestInfo = ctx.PendingServiceRequests[lastRequest.Key];
+                                    string requesterNick = requestInfo.RequesterNick;
+                                    bool isDiscord = requestInfo.IsDiscord;
+                                    
+                                    // Remove from pending
+                                    ctx.PendingServiceRequests.Remove(lastRequest.Key);
+                                    
                                     string fullResponse = string.Join("\n", responses);
-                                    ctx.Logger?.Log($"[CHANSERV RELAY] Sending {responses.Count} lines to {(isDiscord ? "Discord" : "IRC")}");
+                                    ctx.Logger?.Log($"[CHANSERV RELAY] Sending {responses.Count} lines to {(isDiscord ? "Discord" : "IRC")} for {requesterNick}");
                                     
                                     if (isDiscord)
                                     {
+                                        ctx.Logger?.Log($"[CHANSERV RELAY] Attempting to send Discord message...");
                                         await ctx.Discord?.SendMessage($"**{requesterNick}** banlist:\n```\n{fullResponse}\n```");
+                                        ctx.Logger?.Log($"[CHANSERV RELAY] Discord message sent!");
                                     }
                                     else
                                     {
