@@ -61,6 +61,10 @@ namespace MedalBot
         public Dictionary<string, System.Collections.Generic.List<string>> ServiceResponseBuffer { get; set; }
             = new();
 
+        // Track timeout for each pending request (requestId → lastReceivedTime)
+        public Dictionary<string, DateTime> ServiceResponseTimeouts { get; set; }
+            = new();
+
         private readonly object _voicedLock = new();
         private readonly object _muteLock = new();
         private const string MutedIdsFile = "muted_ids.txt";

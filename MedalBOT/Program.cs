@@ -149,56 +149,59 @@ Token=
                         var lastRequest = ctx.PendingServiceRequests.LastOrDefault();
                         if (lastRequest.Key != null)
                         {
-                            // Accumulate responses in buffer
+                            // Initialize buffer if needed
                             if (!ctx.ServiceResponseBuffer.ContainsKey(lastRequest.Key))
                                 ctx.ServiceResponseBuffer[lastRequest.Key] = new System.Collections.Generic.List<string>();
                             
+                            // Add to buffer
                             ctx.ServiceResponseBuffer[lastRequest.Key].Add(noticeContent);
-                            ctx.Logger?.Log($"[CHANSERV] Buffering response: {noticeContent}");
+                            ctx.Logger?.Log($"[CHANSERV] Buffering response ({ctx.ServiceResponseBuffer[lastRequest.Key].Count} lines): {noticeContent}");
                             
-                            // Check for end markers: "None" or "Found X matches."
-                            bool isEndMarker = noticeContent.Equals("None", StringComparison.OrdinalIgnoreCase) || 
-                                              noticeContent.StartsWith("Found ", StringComparison.OrdinalIgnoreCase);
-                            
-                            if (isEndMarker)
-                            {
-                                // End of ChanServ response - send accumulated responses
-                                var responses = ctx.ServiceResponseBuffer[lastRequest.Key];
-                                ctx.Logger?.Log($"[CHANSERV] End marker detected. Got {responses.Count} buffered responses");
-                                
-                                if (responses.Count > 0)
-                                {
-                                    // Get request info BEFORE removing from pending
-                                    var requestInfo = ctx.PendingServiceRequests[lastRequest.Key];
-                                    string requesterNick = requestInfo.RequesterNick;
-                                    bool isDiscord = requestInfo.IsDiscord;
-                                    
-                                    // Remove from pending
-                                    ctx.PendingServiceRequests.Remove(lastRequest.Key);
-                                    
-                                    string fullResponse = string.Join("\n", responses);
-                                    ctx.Logger?.Log($"[CHANSERV RELAY] Sending {responses.Count} lines to {(isDiscord ? "Discord" : "IRC")} for {requesterNick}");
-                                    
-                                    if (isDiscord)
-                                    {
-                                        ctx.Logger?.Log($"[CHANSERV RELAY] Attempting to send Discord message...");
-                                        await ctx.Discord?.SendMessage($"**{requesterNick}** banlist:\n```\n{fullResponse}\n```");
-                                        ctx.Logger?.Log($"[CHANSERV RELAY] Discord message sent!");
-                                    }
-                                    else
-                                    {
-                                        foreach (var resp in responses)
-                                        {
-                                            writer.WriteLine($"PRIVMSG {ctx.Channel} :{resp}");
-                                        }
-                                    }
-                                    
-                                    ctx.ServiceResponseBuffer.Remove(lastRequest.Key);
-                                }
-                            }
+                            // Reset timeout - update last received time
+                            ctx.ServiceResponseTimeouts[lastRequest.Key] = DateTime.UtcNow;
                         }
                     }
                     continue;
+                }
+
+                // Check for timed-out ChanServ responses (2 second timeout)
+                const int timeoutMs = 2000;
+                var expiredRequests = ctx.ServiceResponseTimeouts
+                    .Where(kvp => (DateTime.UtcNow - kvp.Value).TotalMilliseconds > timeoutMs)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                foreach (var requestId in expiredRequests)
+                {
+                    if (ctx.PendingServiceRequests.TryGetValue(requestId, out var requestInfo) && 
+                        ctx.ServiceResponseBuffer.TryGetValue(requestId, out var responses) && 
+                        responses.Count > 0)
+                    {
+                        string requesterNick = requestInfo.RequesterNick;
+                        bool isDiscord = requestInfo.IsDiscord;
+
+                        ctx.Logger?.Log($"[CHANSERV TIMEOUT] Response complete: {responses.Count} lines for {requesterNick}");
+                        
+                        string fullResponse = string.Join("\n", responses);
+
+                        if (isDiscord)
+                        {
+                            ctx.Logger?.Log($"[CHANSERV RELAY] Sending to Discord...");
+                            await ctx.Discord?.SendMessage($"**{requesterNick}** banlist:\n```\n{fullResponse}\n```");
+                        }
+                        else
+                        {
+                            foreach (var resp in responses)
+                            {
+                                writer.WriteLine($"PRIVMSG {ctx.Channel} :{resp}");
+                            }
+                        }
+
+                        // Clean up
+                        ctx.PendingServiceRequests.Remove(requestId);
+                        ctx.ServiceResponseBuffer.Remove(requestId);
+                        ctx.ServiceResponseTimeouts.Remove(requestId);
+                    }
                 }
 
                 if (line.Contains(" QUIT "))
