@@ -65,6 +65,9 @@ namespace MedalBot
         public Dictionary<string, DateTime> ServiceResponseTimeouts { get; set; }
             = new();
 
+        // Current active service request ID (one at a time)
+        public string CurrentServiceRequestId { get; set; }
+
         private readonly object _voicedLock = new();
         private readonly object _muteLock = new();
         private const string MutedIdsFile = "muted_ids.txt";

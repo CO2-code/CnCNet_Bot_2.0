@@ -10,8 +10,9 @@ namespace MedalBot.Commands
         public (bool handled, string response) Process(BotContext ctx, string senderNick, string message, string fullLine)
         {
             // !blist is Discord-only, handled via ProcessDiscord
-            // Only allow !addban, !delban, !tb from IRC
-            if (!message.StartsWith("!addban") && !message.StartsWith("!delban") && !message.StartsWith("!tb"))
+            // Only allow !addban, !delban, !tb, !nickban from IRC
+            if (!message.StartsWith("!addban") && !message.StartsWith("!delban") && 
+                !message.StartsWith("!tb") && !message.StartsWith("!nickban"))
                 return (false, null);
 
             if (!ctx.Admins.Contains(senderNick))
@@ -26,6 +27,9 @@ namespace MedalBot.Commands
             if (message.StartsWith("!tb"))
                 return HandleTimedBan(ctx, senderNick, message);
 
+            if (message.StartsWith("!nickban"))
+                return HandleNickBan(ctx, senderNick, message);
+
             return (false, null);
         }
 
@@ -33,7 +37,8 @@ namespace MedalBot.Commands
         {
             // Discord can use !blist and other commands
             if (!message.StartsWith("!blist") && !message.StartsWith("!addban") && 
-                !message.StartsWith("!delban") && !message.StartsWith("!tb"))
+                !message.StartsWith("!delban") && !message.StartsWith("!tb") && 
+                !message.StartsWith("!nickban"))
                 return (false, null);
 
             if (!ctx.Admins.Contains(senderNick))
@@ -51,15 +56,19 @@ namespace MedalBot.Commands
             if (message.StartsWith("!tb"))
                 return HandleTimedBan(ctx, senderNick, message);
 
+            if (message.StartsWith("!nickban"))
+                return HandleNickBan(ctx, senderNick, message);
+
             return (false, null);
         }
 
         private (bool, string) HandleBanList(BotContext ctx, string senderNick, bool isDiscord)
         {
             string commandId = $"blist_{DateTime.UtcNow.Ticks}_{senderNick}";
+            ctx.CurrentServiceRequestId = commandId;
             ctx.TrackServiceRequest(commandId, senderNick, isDiscord);
             ctx.Writer?.WriteLine($"PRIVMSG ChanServ :bans {ctx.Channel}");
-            ctx.Logger?.Log($"[CHANSERV] {senderNick} requested banlist for {ctx.Channel} (ID: {commandId}) - Discord: {isDiscord}");
+            ctx.Logger?.Log($"[CHANSERV] {senderNick} requested banlist for {ctx.Channel} (ID: {commandId})");
             return (false, null);
         }
 
@@ -104,8 +113,24 @@ namespace MedalBot.Commands
             ctx.Logger?.Log($"[CHANSERV] {senderNick} added timed ban for {target} ({duration}) in {ctx.Channel}");
             return (false, null);
         }
+
+        private (bool, string) HandleNickBan(BotContext ctx, string senderNick, string message)
+        {
+            var parts = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2)
+                return (true, "Usage: !nickban <nick> [reason]");
+
+            string nick = parts[1];
+            string reason = parts.Length > 2 ? string.Join(" ", parts.Skip(2)) : "Please change your nickname";
+
+            string mask = $"*{nick}*!*@*";
+            ctx.Writer?.WriteLine($"PRIVMSG ChanServ :addban {ctx.Channel} {mask} {reason}");
+            ctx.Logger?.Log($"[CHANSERV] {senderNick} nick-banned {nick} in {ctx.Channel}");
+            return (false, null);
+        }
     }
 }
+
 
 
 

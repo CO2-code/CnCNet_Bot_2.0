@@ -140,31 +140,29 @@ Token=
                     ParseWhoResponse(ctx, line);
                 }
 
-                // Capture ChanServ NOTICE replies (sent to bot nick for service requests)
-                if (line.Contains("NOTICE") && line.Contains("ChanServ") && ctx.PendingServiceRequests.Count > 0)
+                // Capture ChanServ/SpamServ NOTICE replies (sent to bot nick for service requests)
+                if (line.Contains("NOTICE") && (line.Contains("ChanServ") || line.Contains("SpamServ")) && !string.IsNullOrWhiteSpace(ctx.CurrentServiceRequestId))
                 {
                     string noticeContent = MessageParser.GetMessage(line);
                     if (!string.IsNullOrWhiteSpace(noticeContent))
                     {
-                        var lastRequest = ctx.PendingServiceRequests.LastOrDefault();
-                        if (lastRequest.Key != null)
-                        {
-                            // Initialize buffer if needed
-                            if (!ctx.ServiceResponseBuffer.ContainsKey(lastRequest.Key))
-                                ctx.ServiceResponseBuffer[lastRequest.Key] = new System.Collections.Generic.List<string>();
-                            
-                            // Add to buffer
-                            ctx.ServiceResponseBuffer[lastRequest.Key].Add(noticeContent);
-                            ctx.Logger?.Log($"[CHANSERV] Buffering response ({ctx.ServiceResponseBuffer[lastRequest.Key].Count} lines): {noticeContent}");
-                            
-                            // Reset timeout - update last received time
-                            ctx.ServiceResponseTimeouts[lastRequest.Key] = DateTime.UtcNow;
-                        }
+                        string requestId = ctx.CurrentServiceRequestId;
+                        
+                        // Initialize buffer if needed
+                        if (!ctx.ServiceResponseBuffer.ContainsKey(requestId))
+                            ctx.ServiceResponseBuffer[requestId] = new System.Collections.Generic.List<string>();
+                        
+                        // Add to buffer
+                        ctx.ServiceResponseBuffer[requestId].Add(noticeContent);
+                        ctx.Logger?.Log($"[SERVICE] Buffering response ({ctx.ServiceResponseBuffer[requestId].Count} lines): {noticeContent}");
+                        
+                        // Reset timeout - update last received time
+                        ctx.ServiceResponseTimeouts[requestId] = DateTime.UtcNow;
                     }
                     continue;
                 }
 
-                // Check for timed-out ChanServ responses (2 second timeout)
+                // Check for timed-out service responses (2 second timeout)
                 const int timeoutMs = 2000;
                 var expiredRequests = ctx.ServiceResponseTimeouts
                     .Where(kvp => (DateTime.UtcNow - kvp.Value).TotalMilliseconds > timeoutMs)
@@ -180,14 +178,14 @@ Token=
                         string requesterNick = requestInfo.RequesterNick;
                         bool isDiscord = requestInfo.IsDiscord;
 
-                        ctx.Logger?.Log($"[CHANSERV TIMEOUT] Response complete: {responses.Count} lines for {requesterNick}");
+                        ctx.Logger?.Log($"[SERVICE TIMEOUT] Response complete: {responses.Count} lines for {requesterNick}");
                         
                         string fullResponse = string.Join("\n", responses);
 
                         if (isDiscord)
                         {
-                            ctx.Logger?.Log($"[CHANSERV RELAY] Sending to Discord...");
-                            await ctx.Discord?.SendMessage($"**{requesterNick}** banlist:\n```\n{fullResponse}\n```");
+                            ctx.Logger?.Log($"[SERVICE RELAY] Sending to Discord...");
+                            await ctx.Discord?.SendMessage($"**{requesterNick}**:\n```\n{fullResponse}\n```");
                         }
                         else
                         {
@@ -201,6 +199,7 @@ Token=
                         ctx.PendingServiceRequests.Remove(requestId);
                         ctx.ServiceResponseBuffer.Remove(requestId);
                         ctx.ServiceResponseTimeouts.Remove(requestId);
+                        ctx.CurrentServiceRequestId = null;
                     }
                 }
 
