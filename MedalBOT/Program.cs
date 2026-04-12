@@ -140,69 +140,16 @@ Token=
                     ParseWhoResponse(ctx, line);
                 }
 
-                // Capture ChanServ/SpamServ NOTICE replies (sent to bot nick for service requests)
-                if (line.Contains("NOTICE") && (line.Contains("ChanServ") || line.Contains("SpamServ")) && ctx.PendingServiceRequests.Count > 0)
+                // Forward ChanServ/SpamServ NOTICE messages directly to Discord
+                if (line.Contains("NOTICE") && (line.Contains("ChanServ") || line.Contains("SpamServ")))
                 {
                     string noticeContent = MessageParser.GetMessage(line);
                     if (!string.IsNullOrWhiteSpace(noticeContent))
                     {
-                        // Append to ALL active request buffers (ChanServ replies are sequential)
-                        foreach (var requestId in ctx.PendingServiceRequests.Keys.ToList())
-                        {
-                            // Initialize buffer if needed
-                            if (!ctx.ServiceResponseBuffer.ContainsKey(requestId))
-                                ctx.ServiceResponseBuffer[requestId] = new System.Collections.Generic.List<string>();
-                            
-                            // Add to buffer
-                            ctx.ServiceResponseBuffer[requestId].Add(noticeContent);
-                            
-                            // Update timeout for this request
-                            ctx.ServiceResponseTimeouts[requestId] = DateTime.UtcNow;
-                        }
-                        
-                        ctx.Logger?.Log($"[SERVICE] Buffering response to {ctx.PendingServiceRequests.Count} active request(s): {noticeContent}");
+                        ctx.Logger?.Log($"[SERVICE NOTICE] {noticeContent}");
+                        await ctx.Discord?.SendMessage($"[SERVICE] {noticeContent}");
                     }
                     continue;
-                }
-
-                // Check for timed-out service responses (2 second timeout)
-                const int timeoutMs = 2000;
-                var expiredRequests = ctx.ServiceResponseTimeouts
-                    .Where(kvp => (DateTime.UtcNow - kvp.Value).TotalMilliseconds > timeoutMs)
-                    .Select(kvp => kvp.Key)
-                    .ToList();
-
-                foreach (var requestId in expiredRequests)
-                {
-                    if (ctx.PendingServiceRequests.TryGetValue(requestId, out var requestInfo) && 
-                        ctx.ServiceResponseBuffer.TryGetValue(requestId, out var responses) && 
-                        responses.Count > 0)
-                    {
-                        string requesterNick = requestInfo.RequesterNick;
-                        bool isDiscord = requestInfo.IsDiscord;
-
-                        ctx.Logger?.Log($"[SERVICE TIMEOUT] Request {requestId} complete: {responses.Count} lines for {requesterNick}");
-                        
-                        string fullResponse = string.Join("\n", responses);
-
-                        if (isDiscord)
-                        {
-                            ctx.Logger?.Log($"[SERVICE RELAY] Sending to Discord for {requesterNick}...");
-                            await ctx.Discord?.SendMessage($"**{requesterNick}**:\n```\n{fullResponse}\n```");
-                        }
-                        else
-                        {
-                            foreach (var resp in responses)
-                            {
-                                writer.WriteLine($"PRIVMSG {ctx.Channel} :{resp}");
-                            }
-                        }
-
-                        // Clean up this specific request
-                        ctx.PendingServiceRequests.Remove(requestId);
-                        ctx.ServiceResponseBuffer.Remove(requestId);
-                        ctx.ServiceResponseTimeouts.Remove(requestId);
-                    }
                 }
 
                 if (line.Contains(" QUIT "))

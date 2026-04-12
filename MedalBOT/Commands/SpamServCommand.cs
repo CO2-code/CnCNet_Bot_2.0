@@ -78,11 +78,8 @@ namespace MedalBot.Commands
 
         private (bool, string) HandleWordList(BotContext ctx, string senderNick, bool isDiscord)
         {
-            string commandId = $"wordlist_{DateTime.UtcNow.Ticks}_{senderNick}";
-            ctx.TrackServiceRequest(commandId, senderNick, isDiscord);
-            ctx.ServiceResponseTimeouts[commandId] = DateTime.UtcNow;
             ctx.Writer?.WriteLine($"PRIVMSG SpamServ :listbadwords {ctx.Channel}");
-            ctx.Logger?.Log($"[SPAMSERV] {senderNick} requested badwords list for {ctx.Channel} (ID: {commandId})");
+            ctx.Logger?.Log($"[SPAMSERV] {senderNick} requested badwords list for {ctx.Channel}");
             return (false, null);
         }
 

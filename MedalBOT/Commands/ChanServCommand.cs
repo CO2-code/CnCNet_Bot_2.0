@@ -64,11 +64,8 @@ namespace MedalBot.Commands
 
         private (bool, string) HandleBanList(BotContext ctx, string senderNick, bool isDiscord)
         {
-            string commandId = $"blist_{DateTime.UtcNow.Ticks}_{senderNick}";
-            ctx.TrackServiceRequest(commandId, senderNick, isDiscord);
-            ctx.ServiceResponseTimeouts[commandId] = DateTime.UtcNow;
             ctx.Writer?.WriteLine($"PRIVMSG ChanServ :bans {ctx.Channel}");
-            ctx.Logger?.Log($"[CHANSERV] {senderNick} requested banlist for {ctx.Channel} (ID: {commandId})");
+            ctx.Logger?.Log($"[CHANSERV] {senderNick} requested banlist for {ctx.Channel}");
             return (false, null);
         }
 
