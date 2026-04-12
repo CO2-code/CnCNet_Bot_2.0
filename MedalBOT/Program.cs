@@ -143,16 +143,9 @@ Token=
                     joined = true;
                 }
 
-                await HostmaskTracker.UpdateHostmask(ctx, line);
-
-                // Parse WHO responses (IRC 352 code)
-                if (line.Contains(" 352 "))
-                {
-                    ParseWhoResponse(ctx, line);
-                }
-
                 // Forward ChanServ/SpamServ NOTICE messages directly to Discord
                 // Format: :ChanServ!... NOTICE botname :message or :SpamServ!... NOTICE botname :message
+                // MUST be checked BEFORE HostmaskTracker
                 if (line.Contains(" NOTICE ") && (line.StartsWith(":ChanServ!") || line.StartsWith(":SpamServ!")))
                 {
                     string noticeContent = MessageParser.GetMessage(line);
@@ -180,6 +173,14 @@ Token=
                         }
                     }
                     continue;
+                }
+
+                await HostmaskTracker.UpdateHostmask(ctx, line);
+
+                // Parse WHO responses (IRC 352 code)
+                if (line.Contains(" 352 "))
+                {
+                    ParseWhoResponse(ctx, line);
                 }
 
                 if (line.Contains(" QUIT "))
