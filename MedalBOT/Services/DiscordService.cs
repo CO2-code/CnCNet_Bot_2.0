@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
@@ -23,20 +24,25 @@ namespace MedalBot.Services
         public async Task SendMessage(string content)
         {
             if (string.IsNullOrWhiteSpace(_webhookUrl)) return;
-
-            var json = $"{{\"content\":\"{Escape(content)}\"}}";
-            var data = new StringContent(json, Encoding.UTF8, "application/json");
+            if (string.IsNullOrWhiteSpace(content)) return;
 
             try
             {
-                await _http.PostAsync(_webhookUrl, data);
-            }
-            catch { }
-        }
+                // Use JsonSerializer for proper JSON encoding
+                var payload = new { content };
+                var json = JsonSerializer.Serialize(payload);
+                var data = new StringContent(json, Encoding.UTF8, "application/json");
 
-        private string Escape(string s)
-        {
-            return s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+                var response = await _http.PostAsync(_webhookUrl, data);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"[DISCORD ERROR] HTTP {response.StatusCode}: {response.Content}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DISCORD ERROR] Failed to send message: {ex.Message}");
+            }
         }
     }
 }

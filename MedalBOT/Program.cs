@@ -148,7 +148,22 @@ Token=
                     if (!string.IsNullOrWhiteSpace(noticeContent))
                     {
                         ctx.Logger?.Log($"[SERVICE NOTICE] {noticeContent}");
-                        await ctx.Discord?.SendMessage($"[SERVICE] {noticeContent}");
+                        try
+                        {
+                            if (ctx.Discord != null)
+                            {
+                                await ctx.Discord.SendMessage($"[SERVICE] {noticeContent}");
+                            }
+                            else
+                            {
+                                Console.WriteLine("[SERVICE NOTICE] Discord client is null!");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[SERVICE NOTICE ERROR] Failed to send to Discord: {ex.Message}");
+                            ctx.Logger?.Log($"[SERVICE NOTICE ERROR] {ex.Message}");
+                        }
                     }
                     continue;
                 }
