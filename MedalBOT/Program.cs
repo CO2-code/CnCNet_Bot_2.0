@@ -74,17 +74,6 @@ Token=
             var discordBot = new DiscordBotService(ctx, channelId);
             _ = discordBot.Start(discordSection.GetValueOrDefault("Token", ""));
 
-            // Validate Discord configuration
-            string webhookUrl = discordSection.GetValueOrDefault("Webhook", "");
-            if (string.IsNullOrWhiteSpace(webhookUrl))
-            {
-                Console.WriteLine("⚠️ [DISCORD] Webhook URL is not configured in credentials.ini");
-            }
-            else
-            {
-                Console.WriteLine($"✓ [DISCORD] Webhook configured: {webhookUrl.Substring(0, Math.Min(50, webhookUrl.Length))}...");
-            }
-
             ctx.ReloadMessages = () => LoadMessages(ctx);
 
             LoadVoiced(ctx);
@@ -160,34 +149,17 @@ Token=
                             noticeContent = line.Substring(colonIndex + 1).Trim();
                         }
                         
-                        Console.WriteLine($"[SERVICE NOTICE CHECK] Extracted message: '{noticeContent}' (length: {noticeContent?.Length ?? 0})");
-                        
                         if (!string.IsNullOrWhiteSpace(noticeContent))
                         {
-                            ctx.Logger?.Log($"[SERVICE NOTICE] {noticeContent}");
-                            Console.WriteLine($"[SERVICE NOTICE HANDLER] Processing: {noticeContent}");
+                            ctx.Logger?.Log($"[SERVICE] {noticeContent}");
                             try
                             {
-                                if (ctx.Discord != null)
-                                {
-                                    Console.WriteLine($"[SERVICE NOTICE HANDLER] Sending to Discord...");
-                                    await ctx.Discord.SendMessage($"[SERVICE] {noticeContent}");
-                                    Console.WriteLine($"[SERVICE NOTICE HANDLER] Successfully sent!");
-                                }
-                                else
-                                {
-                                    Console.WriteLine("[SERVICE NOTICE] Discord client is null!");
-                                }
+                                await ctx.Discord?.SendMessage($"[SERVICE] {noticeContent}");
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine($"[SERVICE NOTICE ERROR] Failed to send to Discord: {ex.Message}");
-                                ctx.Logger?.Log($"[SERVICE NOTICE ERROR] {ex.Message}");
+                                ctx.Logger?.Log($"[SERVICE ERROR] Failed to send to Discord: {ex.Message}");
                             }
-                        }
-                        else
-                        {
-                            Console.WriteLine($"[SERVICE NOTICE CHECK] Message is null or whitespace, skipping");
                         }
                         continue;
                     }
