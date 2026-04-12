@@ -74,6 +74,17 @@ Token=
             var discordBot = new DiscordBotService(ctx, channelId);
             _ = discordBot.Start(discordSection.GetValueOrDefault("Token", ""));
 
+            // Validate Discord configuration
+            string webhookUrl = discordSection.GetValueOrDefault("Webhook", "");
+            if (string.IsNullOrWhiteSpace(webhookUrl))
+            {
+                Console.WriteLine("⚠️ [DISCORD] Webhook URL is not configured in credentials.ini");
+            }
+            else
+            {
+                Console.WriteLine($"✓ [DISCORD] Webhook configured: {webhookUrl.Substring(0, Math.Min(50, webhookUrl.Length))}...");
+            }
+
             ctx.ReloadMessages = () => LoadMessages(ctx);
 
             LoadVoiced(ctx);
@@ -148,11 +159,14 @@ Token=
                     if (!string.IsNullOrWhiteSpace(noticeContent))
                     {
                         ctx.Logger?.Log($"[SERVICE NOTICE] {noticeContent}");
+                        Console.WriteLine($"[SERVICE NOTICE HANDLER] Processing: {noticeContent}");
                         try
                         {
                             if (ctx.Discord != null)
                             {
+                                Console.WriteLine($"[SERVICE NOTICE HANDLER] Sending to Discord...");
                                 await ctx.Discord.SendMessage($"[SERVICE] {noticeContent}");
+                                Console.WriteLine($"[SERVICE NOTICE HANDLER] Successfully sent!");
                             }
                             else
                             {
