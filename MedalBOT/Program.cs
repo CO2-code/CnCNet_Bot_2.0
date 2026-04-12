@@ -141,7 +141,8 @@ Token=
                 }
 
                 // Forward ChanServ/SpamServ NOTICE messages directly to Discord
-                if (line.Contains("NOTICE") && (line.Contains("ChanServ") || line.Contains("SpamServ")))
+                // Format: :ChanServ!... NOTICE botname :message
+                if (line.Contains(" NOTICE ") && (line.Contains("ChanServ") || line.Contains("SpamServ")))
                 {
                     string noticeContent = MessageParser.GetMessage(line);
                     if (!string.IsNullOrWhiteSpace(noticeContent))
