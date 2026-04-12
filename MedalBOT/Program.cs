@@ -146,33 +146,43 @@ Token=
                 // Forward ChanServ/SpamServ NOTICE messages directly to Discord
                 // Format: :ChanServ!... NOTICE botname :message or :SpamServ!... NOTICE botname :message
                 // MUST be checked BEFORE HostmaskTracker
-                if (line.Contains(" NOTICE ") && (line.StartsWith(":ChanServ!") || line.StartsWith(":SpamServ!")))
+                if (line.StartsWith(":ChanServ!") || line.StartsWith(":SpamServ!"))
                 {
-                    string noticeContent = MessageParser.GetMessage(line);
-                    if (!string.IsNullOrWhiteSpace(noticeContent))
+                    if (line.Contains(" NOTICE "))
                     {
-                        ctx.Logger?.Log($"[SERVICE NOTICE] {noticeContent}");
-                        Console.WriteLine($"[SERVICE NOTICE HANDLER] Processing: {noticeContent}");
-                        try
+                        Console.WriteLine($"[SERVICE NOTICE CHECK] Line starts with ChanServ/SpamServ and contains NOTICE");
+                        string noticeContent = MessageParser.GetMessage(line);
+                        Console.WriteLine($"[SERVICE NOTICE CHECK] Extracted message: '{noticeContent}' (length: {noticeContent?.Length ?? 0})");
+                        
+                        if (!string.IsNullOrWhiteSpace(noticeContent))
                         {
-                            if (ctx.Discord != null)
+                            ctx.Logger?.Log($"[SERVICE NOTICE] {noticeContent}");
+                            Console.WriteLine($"[SERVICE NOTICE HANDLER] Processing: {noticeContent}");
+                            try
                             {
-                                Console.WriteLine($"[SERVICE NOTICE HANDLER] Sending to Discord...");
-                                await ctx.Discord.SendMessage($"[SERVICE] {noticeContent}");
-                                Console.WriteLine($"[SERVICE NOTICE HANDLER] Successfully sent!");
+                                if (ctx.Discord != null)
+                                {
+                                    Console.WriteLine($"[SERVICE NOTICE HANDLER] Sending to Discord...");
+                                    await ctx.Discord.SendMessage($"[SERVICE] {noticeContent}");
+                                    Console.WriteLine($"[SERVICE NOTICE HANDLER] Successfully sent!");
+                                }
+                                else
+                                {
+                                    Console.WriteLine("[SERVICE NOTICE] Discord client is null!");
+                                }
                             }
-                            else
+                            catch (Exception ex)
                             {
-                                Console.WriteLine("[SERVICE NOTICE] Discord client is null!");
+                                Console.WriteLine($"[SERVICE NOTICE ERROR] Failed to send to Discord: {ex.Message}");
+                                ctx.Logger?.Log($"[SERVICE NOTICE ERROR] {ex.Message}");
                             }
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            Console.WriteLine($"[SERVICE NOTICE ERROR] Failed to send to Discord: {ex.Message}");
-                            ctx.Logger?.Log($"[SERVICE NOTICE ERROR] {ex.Message}");
+                            Console.WriteLine($"[SERVICE NOTICE CHECK] Message is null or whitespace, skipping");
                         }
+                        continue;
                     }
-                    continue;
                 }
 
                 await HostmaskTracker.UpdateHostmask(ctx, line);
