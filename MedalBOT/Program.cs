@@ -150,8 +150,16 @@ Token=
                 {
                     if (line.Contains(" NOTICE "))
                     {
-                        Console.WriteLine($"[SERVICE NOTICE CHECK] Line starts with ChanServ/SpamServ and contains NOTICE");
-                        string noticeContent = MessageParser.GetMessage(line);
+                        // Extract message from NOTICE line (MessageParser.GetMessage only works for PRIVMSG)
+                        // Format: :ChanServ!... NOTICE bot :message content here
+                        int colonIndex = line.IndexOf(':', line.IndexOf("NOTICE") + 6);  // Find colon after "NOTICE"
+                        string noticeContent = "";
+                        
+                        if (colonIndex > 0)
+                        {
+                            noticeContent = line.Substring(colonIndex + 1).Trim();
+                        }
+                        
                         Console.WriteLine($"[SERVICE NOTICE CHECK] Extracted message: '{noticeContent}' (length: {noticeContent?.Length ?? 0})");
                         
                         if (!string.IsNullOrWhiteSpace(noticeContent))
