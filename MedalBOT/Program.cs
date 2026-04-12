@@ -141,23 +141,26 @@ Token=
                 }
 
                 // Capture ChanServ/SpamServ NOTICE replies (sent to bot nick for service requests)
-                if (line.Contains("NOTICE") && (line.Contains("ChanServ") || line.Contains("SpamServ")) && !string.IsNullOrWhiteSpace(ctx.CurrentServiceRequestId))
+                if (line.Contains("NOTICE") && (line.Contains("ChanServ") || line.Contains("SpamServ")) && ctx.PendingServiceRequests.Count > 0)
                 {
                     string noticeContent = MessageParser.GetMessage(line);
                     if (!string.IsNullOrWhiteSpace(noticeContent))
                     {
-                        string requestId = ctx.CurrentServiceRequestId;
+                        // Append to ALL active request buffers (ChanServ replies are sequential)
+                        foreach (var requestId in ctx.PendingServiceRequests.Keys.ToList())
+                        {
+                            // Initialize buffer if needed
+                            if (!ctx.ServiceResponseBuffer.ContainsKey(requestId))
+                                ctx.ServiceResponseBuffer[requestId] = new System.Collections.Generic.List<string>();
+                            
+                            // Add to buffer
+                            ctx.ServiceResponseBuffer[requestId].Add(noticeContent);
+                            
+                            // Update timeout for this request
+                            ctx.ServiceResponseTimeouts[requestId] = DateTime.UtcNow;
+                        }
                         
-                        // Initialize buffer if needed
-                        if (!ctx.ServiceResponseBuffer.ContainsKey(requestId))
-                            ctx.ServiceResponseBuffer[requestId] = new System.Collections.Generic.List<string>();
-                        
-                        // Add to buffer
-                        ctx.ServiceResponseBuffer[requestId].Add(noticeContent);
-                        ctx.Logger?.Log($"[SERVICE] Buffering response ({ctx.ServiceResponseBuffer[requestId].Count} lines): {noticeContent}");
-                        
-                        // Reset timeout - update last received time
-                        ctx.ServiceResponseTimeouts[requestId] = DateTime.UtcNow;
+                        ctx.Logger?.Log($"[SERVICE] Buffering response to {ctx.PendingServiceRequests.Count} active request(s): {noticeContent}");
                     }
                     continue;
                 }
@@ -178,13 +181,13 @@ Token=
                         string requesterNick = requestInfo.RequesterNick;
                         bool isDiscord = requestInfo.IsDiscord;
 
-                        ctx.Logger?.Log($"[SERVICE TIMEOUT] Response complete: {responses.Count} lines for {requesterNick}");
+                        ctx.Logger?.Log($"[SERVICE TIMEOUT] Request {requestId} complete: {responses.Count} lines for {requesterNick}");
                         
                         string fullResponse = string.Join("\n", responses);
 
                         if (isDiscord)
                         {
-                            ctx.Logger?.Log($"[SERVICE RELAY] Sending to Discord...");
+                            ctx.Logger?.Log($"[SERVICE RELAY] Sending to Discord for {requesterNick}...");
                             await ctx.Discord?.SendMessage($"**{requesterNick}**:\n```\n{fullResponse}\n```");
                         }
                         else
@@ -195,11 +198,10 @@ Token=
                             }
                         }
 
-                        // Clean up
+                        // Clean up this specific request
                         ctx.PendingServiceRequests.Remove(requestId);
                         ctx.ServiceResponseBuffer.Remove(requestId);
                         ctx.ServiceResponseTimeouts.Remove(requestId);
-                        ctx.CurrentServiceRequestId = null;
                     }
                 }
 
